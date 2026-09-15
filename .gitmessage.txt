@@ -1,0 +1,26 @@
+# <type>: <subject>            (50 chars max, imperative, no period)
+#
+# <body>                       (why, not what — wrap at 72)
+#
+# <footer>                     Closes #<issue>  |  Refs #<issue>
+#
+# ---------------------------------------------------------------
+# type
+#   feat      new feature or behaviour change
+#   fix       bug fix
+#   refactor  code change that neither fixes a bug nor adds a feature
+#   docs      documentation only
+#   test      tests only
+#   ci        CI / GitHub Actions
+#   chore     build, tooling, .gitignore, dependencies
+#   style     formatting only (no logic change)
+#
+# example
+#   feat: add settings screen reachable from main menu
+#
+#   Adds SettingsScreen with volume placeholders. Sound team will
+#   wire the real toggles once their API lands.
+#
+#   Closes #7
+# ---------------------------------------------------------------
+# Enable once per clone:  git config commit.template .gitmessage.txt
