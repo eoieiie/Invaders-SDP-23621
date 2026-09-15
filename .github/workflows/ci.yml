@@ -23,4 +23,4 @@ jobs:
           javac -Xlint:all -d bin $(find src -name '*.java')
 
       - name: Check resources referenced by code exist
-        run: test -d res/graphics
+        run: test -f res/graphics && test -f res/scores
