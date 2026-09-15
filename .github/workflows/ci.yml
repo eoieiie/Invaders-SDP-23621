@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Compile
+        run: |
+          mkdir -p bin
+          javac -Xlint:all -d bin $(find src -name '*.java')
+
+      - name: Check resources referenced by code exist
+        run: test -d res/graphics
