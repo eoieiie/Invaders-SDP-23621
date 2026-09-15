@@ -9,14 +9,16 @@ Closes #
 - 
 
 ## How to test
-1. `javac -d bin $(find src -name "*.java") && java -cp bin:res engine.Core`
+1. Build & run
+   - macOS / Linux: `javac -d bin $(find src -name "*.java") && java -cp bin:res engine.Core`
+   - Windows (PowerShell): `javac -d bin (Get-ChildItem -Recurse src -Filter *.java).FullName; java -cp "bin;res" engine.Core`
 2. 
 
 ## Screenshots
 <!-- Required for anything visible on screen -->
 
 ## Checklist
-- [ ] Branch is `hello-world/<feature>` and based on latest `main`
+- [ ] Branch is `<team>/<feature>` and based on latest `main`
 - [ ] One feature per PR, under ~400 changed lines
 - [ ] CI is green
 - [ ] Touches `DrawManager` / `Core` / `GameScreen`? → explained above

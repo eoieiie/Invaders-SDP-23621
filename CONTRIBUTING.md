@@ -1,9 +1,9 @@
-# Contributing — Hello World
+# Contributing
 
 ## Branches
 - `main` — protected. No direct push. Changes arrive only through PRs.
-- `hello-world/<feature>` — one branch per feature. Lowercase, hyphens. Delete after merge.
-  - `hello-world/settings-screen`, `hello-world/mouse-support`
+- `<team>/<feature>` — one branch per feature. Lowercase, hyphens. Delete after merge.
+  - `hello-world/settings-screen`, `gog/coin-drop`
 
 ## Commits
 - Format: `<type>: <subject>` — see `.gitmessage.txt`. Enable it: `git config commit.template .gitmessage.txt`
@@ -14,7 +14,7 @@
 ## Pull requests
 - One feature per PR. Target ~400 changed lines or less.
 - Fill the template. Screenshots for anything visible.
-- Base branch: **our fork `main`** for daily work. Upstream only when a requirement is complete and after the leaders' channel has been told.
+- Base branch: **your team fork `main`** for daily work. Upstream only when a requirement is complete and after the leaders' channel has been told.
 - Rebase/merge latest `main` before requesting review. PRs with conflicts are not reviewed.
 - Request **1–2 reviewers**, not everyone.
 - Merge method: **Squash and merge**. Delete the branch.
@@ -36,7 +36,7 @@ Approval must say **what you checked** in one line. "LGTM" alone is not a review
 
 ## Shared files — extra care
 `engine/DrawManager.java`, `engine/Core.java`, `screen/GameScreen.java` are used by every team.
-Any change there must be mentioned in the PR description and reviewed by the menu-framework owner.
+Any change there must be mentioned in the PR description and reviewed by the team that owns the file (menu framework: Hello World).
 
 ## Definition of Done
 - Code compiles (CI green) and the game runs
