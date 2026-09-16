@@ -23,4 +23,4 @@ Closes #
 - [ ] CI is green
 - [ ] Touches `DrawManager` / `Core` / `GameScreen`? → explained above
 - [ ] I ran the game after my change
-- [ ] Upstream PR? → title is `type(requirement): subject`, `Depends on:` listed if any
+- [ ] Upstream PR? → title is `type(requirement): subject`; if it depends on another PR, `Depends on: #N` is the first line of this description
