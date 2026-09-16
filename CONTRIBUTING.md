@@ -18,6 +18,7 @@
 - Rebase/merge latest `main` before requesting review. PRs with conflicts are not reviewed.
 - Request **1–2 reviewers**, not everyone.
 - Merge method: **Squash and merge**. Delete the branch.
+- **Upstream PRs:** title `type(requirement): subject` (e.g. `feat(main-menu): ...`) so the shared PR list shows which team it is. If it depends on another team's PR, put `Depends on: #N` on the first line of the body.
 
 ## Reviews
 Tag every comment with a priority so the author knows what is required:
