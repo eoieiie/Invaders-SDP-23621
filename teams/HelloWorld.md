@@ -11,15 +11,15 @@ so that the features implemented by other teams operate without any issues.
 
 | Name | Role | GitHub |
 | --- | --- | --- |
-| Byeongjoo Hwang | Team leader, cross-team coordination, CI/CD | [eoieiie](https://github.com/eoieiie) |
-| Junwoo Kang | Menu framework | [oofrog](https://github.com/oofrog) |
-| Yongtae Kim | Version control, PR review, main repository access | [kyle891204](https://github.com/kyle891204) |
-| Jaeone Park | Shop UI | [kyobak](https://github.com/kyobak) |
-| Taehyun Bak | Achievements UI | [nuyh-99](https://github.com/nuyh-99) |
-| Myeongho Song | Mouse support, key hints, exit confirmation | [SongMyeongHo](https://github.com/SongMyeongHo) |
-| Changyong Woo | Testing, integration check | [samryong](https://github.com/samryong) |
-| Hyeokjun Lee | Settings UI | [Aninnom](https://github.com/Aninnom) |
-| Junhyeok Han | Documentation, wiki | [junh000](https://github.com/junh000) |
+| Byeongjoo Hwang | Team leader, cross-team coordination, CI | [eoieiie](https://github.com/eoieiie) |
+| Junwoo Kang | Shop screen shell | [oofrog](https://github.com/oofrog) |
+| Yongtae Kim | Settings UI, main repository access | [kyle891204](https://github.com/kyle891204) |
+| Jaeone Park | Key hints, exit confirmation | [kyobak](https://github.com/kyobak) |
+| Taehyun Bak | Ship select screen shell | [nuyh-99](https://github.com/nuyh-99) |
+| Myeongho Song | Mouse support | [SongMyeongHo](https://github.com/SongMyeongHo) |
+| Changyong Woo | Documentation, wiki | [samryong](https://github.com/samryong) |
+| Hyeokjun Lee | Menu framework | [Aninnom](https://github.com/Aninnom) |
+| Junhyeok Han | Achievements screen shell | [junh000](https://github.com/junh000) |
 
 ## Team Requirements
 
