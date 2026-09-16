@@ -172,6 +172,14 @@ public final class Core {
 				returnCode = frame.setScreen(currentScreen);
 				LOGGER.info("Closing high score screen.");
 				break;
+			case 4:
+				// Settings UI
+				currentScreen = new SettingScreen(width, height, FPS);
+				LOGGER.info("Starting" + WIDTH + "x" + HEIGHT
+						+ "settings screen at " + FPS + " fps.");
+				returnCode = frame.setScreen(currentScreen);
+				LOGGER.info("Closing settings screen.");
+				break;
 			default:
 				break;
 			}
