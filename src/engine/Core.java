@@ -12,6 +12,7 @@ import screen.GameScreen;
 import screen.HighScoreScreen;
 import screen.ScoreScreen;
 import screen.Screen;
+import screen.ShipSelectScreen;
 import screen.TitleScreen;
 
 /**
@@ -171,6 +172,14 @@ public final class Core {
 						+ " high score screen at " + FPS + " fps.");
 				returnCode = frame.setScreen(currentScreen);
 				LOGGER.info("Closing high score screen.");
+				break;
+			case 7:
+				// Ship select.
+				currentScreen = new ShipSelectScreen(width, height, FPS);
+				LOGGER.info("Starting" + WIDTH + "x" + HEIGHT
+						+ "ship select screen at "+ FPS + " fps.");
+				returnCode = frame.setScreen(currentScreen);
+				LOGGER.info("Closing ship select screen.");
 				break;
 			default:
 				// No screen for this code yet - back to the menu instead of
