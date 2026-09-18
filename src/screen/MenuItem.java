@@ -21,7 +21,7 @@ public enum MenuItem {
 	/** Settings screen. */
 	SETTINGS("Settings", 4, true),
 	/** Shop screen. */
-	SHOP("Shop", 5, false),
+	SHOP("Shop", 5, true),
 	/** Achievements screen. */
 	ACHIEVEMENTS("Achievements", 6, false),
 	/** Ship selection screen. */
