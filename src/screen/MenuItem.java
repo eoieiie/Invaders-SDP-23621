@@ -19,7 +19,7 @@ public enum MenuItem {
 	/** Shows the high score table. */
 	HIGH_SCORES("High scores", 3, true),
 	/** Settings screen. */
-	SETTINGS("Settings", 4, false),
+	SETTINGS("Settings", 4, true),
 	/** Shop screen. */
 	SHOP("Shop", 5, false),
 	/** Achievements screen. */
