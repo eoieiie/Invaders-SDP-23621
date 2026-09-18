@@ -366,6 +366,21 @@ public final class DrawManager {
 	}
 
 	/**
+	 * Draws the title of a screen reached from the main menu, in the same
+	 * colour and place as the high score screen's title. Sets its own colour,
+	 * so it does not depend on what was drawn before it.
+	 * 
+	 * @param screen
+	 *            Screen to draw on.
+	 * @param title
+	 *            Title to draw.
+	 */
+	public void drawScreenTitle(final Screen screen, final String title) {
+		backBufferGraphics.setColor(Color.GREEN);
+		drawCenteredBigString(screen, title, screen.getHeight() / 8);
+	}
+
+	/**
 	 * Draws game results.
 	 * 
 	 * @param screen
