@@ -11,8 +11,8 @@ import java.util.logging.Logger;
 import screen.GameScreen;
 import screen.HighScoreScreen;
 import screen.ScoreScreen;
-import screen.SettingsScreen;
 import screen.Screen;
+import screen.SettingsScreen;
 import screen.TitleScreen;
 
 /**
