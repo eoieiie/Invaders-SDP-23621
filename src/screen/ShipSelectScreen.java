@@ -8,59 +8,59 @@ import java.awt.event.KeyEvent;
  */
 public class ShipSelectScreen extends Screen {
 
-    /**
-     * Constructor, establishes the properties of the screen.
-     *
-     * @param width
-     *            Screen width.
-     * @param height
-     *            Screen height.
-     * @param fps
-     *            Frames per second, frame rate at which the game is run.
-     */
-    public ShipSelectScreen(final int width, final int height, final int fps) {
-        super(width, height, fps);
+	/**
+	 * Constructor, establishes the properties of the screen.
+	 *
+	 * @param width
+	 *            Screen width.
+	 * @param height
+	 *            Screen height.
+	 * @param fps
+	 *            Frames per second, frame rate at which the game is run.
+	 */
+	public ShipSelectScreen(final int width, final int height, final int fps) {
+		super(width, height, fps);
 
-        // Back to the main menu when this screen closes.
-        this.returnCode = 1;
-    }
+		// Back to the main menu when this screen closes.
+		this.returnCode = 1;
+	}
 
-    /**
-     * Starts the action.
-     *
-     * @return Next screen code.
-     */
-    public final int run() {
-        super.run();
+	/**
+	 * Starts the action.
+	 *
+	 * @return Next screen code.
+	 */
+	public final int run() {
+		super.run();
 
-        return this.returnCode;
-    }
+		return this.returnCode;
+	}
 
-    /**
-     * Updates the elements on screen and checks for events.
-     */
-    protected final void update() {
-        super.update();
+	/**
+	 * Updates the elements on screen and checks for events.
+	 */
+	protected final void update() {
+		super.update();
 
-        draw();
-        if (inputManager.isKeyDown(KeyEvent.VK_ESCAPE)
-                && this.inputDelay.checkFinished())
-            this.isRunning = false;
-    }
+		draw();
+		if (inputManager.isKeyDown(KeyEvent.VK_ESCAPE)
+				&& this.inputDelay.checkFinished())
+			this.isRunning = false;
+	}
 
-    /**
-     * Draws the elements associated with the screen.
-     */
-    private void draw() {
-        drawManager.initDrawing(this);
+	/**
+	 * Draws the elements associated with the screen.
+	 */
+	private void draw() {
+		drawManager.initDrawing(this);
 
-        // Sets the drawing colour: the centered string helpers keep whatever
-        // colour was set before them, and the buffer starts out black.
-        drawManager.drawHorizontalLine(this, this.height / 4 + 30);
-        drawManager.drawCenteredBigString(this, "Ship select", this.height / 4);
-        drawManager.drawCenteredRegularString(this,
-                "Coming soon - press ESC to return", this.height / 2);
+		// Sets the drawing colour: the centered string helpers keep whatever
+		// colour was set before them, and the buffer starts out black.
+		drawManager.drawHorizontalLine(this, this.height / 4 + 30);
+		drawManager.drawCenteredBigString(this, "Ship select", this.height / 4);
+		drawManager.drawCenteredRegularString(this,
+				"Coming soon - press ESC to return", this.height / 2);
 
-        drawManager.completeDrawing(this);
-    }
+		drawManager.completeDrawing(this);
+	}
 }
