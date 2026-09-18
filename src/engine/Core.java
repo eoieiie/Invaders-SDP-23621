@@ -1,3 +1,4 @@
+
 package engine;
 
 import java.util.ArrayList;
@@ -12,6 +13,7 @@ import screen.GameScreen;
 import screen.HighScoreScreen;
 import screen.ScoreScreen;
 import screen.Screen;
+import screen.SettingsScreen;
 import screen.ShipSelectScreen;
 import screen.TitleScreen;
 
@@ -172,6 +174,14 @@ public final class Core {
 						+ " high score screen at " + FPS + " fps.");
 				returnCode = frame.setScreen(currentScreen);
 				LOGGER.info("Closing high score screen.");
+				break;
+			case 4:
+				// Settings UI
+				currentScreen = new SettingsScreen(width, height, FPS);
+				LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
+						+ " settings screen at " + FPS + " fps.");
+				returnCode = frame.setScreen(currentScreen);
+				LOGGER.info("Closing settings screen.");
 				break;
 			case 7:
 				// Ship select.
