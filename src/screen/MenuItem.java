@@ -27,7 +27,7 @@ public enum MenuItem {
 	/** Ship selection screen. */
 	SHIP_SELECT("Ship select", 7, false),
 	/** Closes the game. */
-	EXIT("exit", 0, true);
+	EXIT("Exit", 0, true);
 
 	/** Text drawn on the menu. */
 	private final String title;
