@@ -11,7 +11,7 @@ import java.util.logging.Logger;
 import screen.GameScreen;
 import screen.HighScoreScreen;
 import screen.ScoreScreen;
-import screen.SettingScreen;
+import screen.SettingsScreen;
 import screen.Screen;
 import screen.TitleScreen;
 
@@ -175,7 +175,7 @@ public final class Core {
 				break;
 			case 4:
 				// Settings UI
-				currentScreen = new SettingScreen(width, height, FPS);
+				currentScreen = new SettingsScreen(width, height, FPS);
 				LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
 						+ " settings screen at " + FPS + " fps.");
 				returnCode = frame.setScreen(currentScreen);
