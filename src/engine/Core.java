@@ -13,8 +13,8 @@ import screen.HighScoreScreen;
 import screen.ScoreScreen;
 import screen.Screen;
 import screen.SettingsScreen;
-import screen.TitleScreen;
 import screen.ShopScreen;
+import screen.TitleScreen;
 
 /**
  * Implements core game logic.
@@ -182,14 +182,14 @@ public final class Core {
 				returnCode = frame.setScreen(currentScreen);
 				LOGGER.info("Closing settings screen.");
 				break;
-            case 5:
-                // Shop.
-                currentScreen = new ShopScreen(width, height, FPS);
-                LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
-                        + " shop screen at " + FPS + " fps.");
-                returnCode = frame.setScreen(currentScreen);
-                LOGGER.info("Closing shop screen.");
-                break;
+			case 5:
+				// Shop.
+				currentScreen = new ShopScreen(width, height, FPS);
+				LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
+						+ " shop screen at " + FPS + " fps.");
+				returnCode = frame.setScreen(currentScreen);
+				LOGGER.info("Closing shop screen.");
+				break;
 			default:
 				// No screen for this code yet - back to the menu instead of
 				// spinning in this loop forever.
