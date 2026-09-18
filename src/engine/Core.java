@@ -173,6 +173,11 @@ public final class Core {
 				LOGGER.info("Closing high score screen.");
 				break;
 			default:
+				// No screen for this code yet - back to the menu instead of
+				// spinning in this loop forever.
+				LOGGER.warning("Unknown return code " + returnCode
+						+ ", returning to the main menu.");
+				returnCode = 1;
 				break;
 			}
 
