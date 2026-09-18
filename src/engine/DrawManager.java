@@ -353,7 +353,7 @@ public final class DrawManager {
 	 * @return Baseline of the item's text.
 	 */
 	private int menuItemBaseline(final Screen screen, final int index) {
-		return screen.getHeight() / 3 * 2 + menuItemSpacing() * index;
+		return screen.getHeight() / 2 + menuItemSpacing() * (index + 2);
 	}
 
 	/**
