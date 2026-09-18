@@ -18,6 +18,8 @@ public class TitleScreen extends Screen {
 	
 	/** Time between changes in user selection. */
 	private Cooldown selectionCooldown;
+	/** Menu item the cursor is on. */
+	private MenuItem selected;
 
 	/**
 	 * Constructor, establishes the properties of the screen.
@@ -32,8 +34,8 @@ public class TitleScreen extends Screen {
 	public TitleScreen(final int width, final int height, final int fps) {
 		super(width, height, fps);
 
-		// Defaults to play.
-		this.returnCode = 2;
+		// Starts on the topmost item.
+		this.selected = MenuItem.first();
 		this.selectionCooldown = Core.getCooldown(SELECTION_TIME);
 		this.selectionCooldown.reset();
 	}
@@ -60,41 +62,30 @@ public class TitleScreen extends Screen {
 				&& this.inputDelay.checkFinished()) {
 			if (inputManager.isKeyDown(KeyEvent.VK_UP)
 					|| inputManager.isKeyDown(KeyEvent.VK_W)) {
-				previousMenuItem();
+				this.selected = this.selected.previous();
 				this.selectionCooldown.reset();
 			}
 			if (inputManager.isKeyDown(KeyEvent.VK_DOWN)
 					|| inputManager.isKeyDown(KeyEvent.VK_S)) {
-				nextMenuItem();
+				this.selected = this.selected.next();
 				this.selectionCooldown.reset();
 			}
 			if (inputManager.isKeyDown(KeyEvent.VK_SPACE))
-				this.isRunning = false;
+				confirm();
 		}
 	}
 
 	/**
-	 * Shifts the focus to the next menu item.
+	 * Chooses the item the cursor is on and closes the screen, so Core opens
+	 * the screen behind it. Every way of choosing an item - space today, a
+	 * mouse click later - goes through here. Items without a screen are
+	 * ignored.
 	 */
-	private void nextMenuItem() {
-		if (this.returnCode == 3)
-			this.returnCode = 0;
-		else if (this.returnCode == 0)
-			this.returnCode = 2;
-		else
-			this.returnCode++;
-	}
-
-	/**
-	 * Shifts the focus to the previous menu item.
-	 */
-	private void previousMenuItem() {
-		if (this.returnCode == 0)
-			this.returnCode = 3;
-		else if (this.returnCode == 2)
-			this.returnCode = 0;
-		else
-			this.returnCode--;
+	private void confirm() {
+		if (!this.selected.isEnabled())
+			return;
+		this.returnCode = this.selected.getCode();
+		this.isRunning = false;
 	}
 
 	/**
@@ -104,7 +95,7 @@ public class TitleScreen extends Screen {
 		drawManager.initDrawing(this);
 
 		drawManager.drawTitle(this);
-		drawManager.drawMenu(this, this.returnCode);
+		drawManager.drawMenu(this, this.selected);
 
 		drawManager.completeDrawing(this);
 	}
