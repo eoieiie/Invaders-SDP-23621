@@ -54,10 +54,7 @@ public class ShipSelectScreen extends Screen {
 	private void draw() {
 		drawManager.initDrawing(this);
 
-		// Sets the drawing colour: the centered string helpers keep whatever
-		// colour was set before them, and the buffer starts out black.
-		drawManager.drawHorizontalLine(this, this.height / 4 + 30);
-		drawManager.drawCenteredBigString(this, "Ship select", this.height / 4);
+		drawManager.drawScreenTitle(this, MenuItem.SHIP_SELECT.getTitle());
 		drawManager.drawCenteredRegularString(this,
 				"Coming soon - press ESC to return", this.height / 2);
 
