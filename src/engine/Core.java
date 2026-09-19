@@ -14,6 +14,7 @@ import screen.ScoreScreen;
 import screen.Screen;
 import screen.SettingsScreen;
 import screen.ShopScreen;
+import screen.ShipSelectScreen;
 import screen.TitleScreen;
 
 /**
@@ -189,6 +190,14 @@ public final class Core {
 						+ " shop screen at " + FPS + " fps.");
 				returnCode = frame.setScreen(currentScreen);
 				LOGGER.info("Closing shop screen.");
+				break;
+			case 7:
+				// Ship select.
+				currentScreen = new ShipSelectScreen(width, height, FPS);
+				LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
+						+ " ship select screen at " + FPS + " fps.");
+				returnCode = frame.setScreen(currentScreen);
+				LOGGER.info("Closing ship select screen.");
 				break;
 			default:
 				// No screen for this code yet - back to the menu instead of

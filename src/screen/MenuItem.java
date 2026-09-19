@@ -25,7 +25,7 @@ public enum MenuItem {
 	/** Achievements screen. */
 	ACHIEVEMENTS("Achievements", 6, false),
 	/** Ship selection screen. */
-	SHIP_SELECT("Ship select", 7, false),
+	SHIP_SELECT("Ship select", 7, true),
 	/** Closes the game. */
 	EXIT("Exit", 0, true);
 
