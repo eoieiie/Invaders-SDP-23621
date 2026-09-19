@@ -284,12 +284,6 @@ public final class DrawManager {
 	 */
 	public void drawTitle(final Screen screen) {
 		String titleString = "Invaders";
-		String instructionsString =
-				"select with w+s / arrows, confirm with space";
-
-		backBufferGraphics.setColor(Color.GRAY);
-		drawCenteredRegularString(screen, instructionsString,
-				screen.getHeight() / 2);
 
 		backBufferGraphics.setColor(Color.GREEN);
 		drawCenteredBigString(screen, titleString, screen.getHeight() / 3);
@@ -363,6 +357,65 @@ public final class DrawManager {
 	 */
 	private int menuItemSpacing() {
 		return fontRegularMetrics.getHeight() * 5 / 4;
+	}
+
+	/**
+	 * Draws the keys available on the current screen, one line along the
+	 * bottom.
+	 *
+	 * @param screen
+	 *            Screen to draw on.
+	 * @param hints
+	 *            Keys to show, already worded for the current state.
+	 */
+	public void drawKeyHints(final Screen screen, final String hints) {
+		backBufferGraphics.setColor(Color.GRAY);
+		drawCenteredRegularString(screen, hints,
+				screen.getHeight() - fontRegularMetrics.getHeight());
+	}
+
+	/**
+	 * Draws the exit confirmation over the menu. Filled first so the menu
+	 * behind it does not show through.
+	 *
+	 * @param screen
+	 *            Screen to draw on.
+	 * @param yesSelected
+	 *            Whether the cursor is on Yes.
+	 */
+	public void drawExitConfirm(final Screen screen,
+			final boolean yesSelected) {
+		String question = "Really quit?";
+		String yesString = "Yes";
+		String noString = "No";
+
+		int spacing = menuItemSpacing();
+		int boxWidth = screen.getWidth() / 2;
+		int boxHeight = spacing * 4;
+		int boxX = (screen.getWidth() - boxWidth) / 2;
+		int boxY = (screen.getHeight() - boxHeight) / 2;
+
+		backBufferGraphics.setColor(Color.BLACK);
+		backBufferGraphics.fillRect(boxX, boxY, boxWidth, boxHeight);
+		backBufferGraphics.setColor(Color.GRAY);
+		backBufferGraphics.drawRect(boxX, boxY, boxWidth, boxHeight);
+
+		backBufferGraphics.setColor(Color.WHITE);
+		drawCenteredRegularString(screen, question, boxY + spacing * 3 / 2);
+
+		// Yes and No sit either side of the centre, so they need their own
+		// x positions rather than the centred helper.
+		int answerY = boxY + spacing * 3;
+		int yesX = screen.getWidth() / 2 - boxWidth / 4
+				- fontRegularMetrics.stringWidth(yesString) / 2;
+		int noX = screen.getWidth() / 2 + boxWidth / 4
+				- fontRegularMetrics.stringWidth(noString) / 2;
+
+		backBufferGraphics.setFont(fontRegular);
+		backBufferGraphics.setColor(yesSelected ? Color.GREEN : Color.WHITE);
+		backBufferGraphics.drawString(yesString, yesX, answerY);
+		backBufferGraphics.setColor(yesSelected ? Color.WHITE : Color.GREEN);
+		backBufferGraphics.drawString(noString, noX, answerY);
 	}
 
 	/**
