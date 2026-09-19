@@ -51,8 +51,7 @@ public class ShopScreen extends Screen {
 	 */
 	private void draw() {
 		this.drawManager.initDrawing(this);
-		this.drawManager.drawHorizontalLine(this, this.getHeight() / 3 - 20);
-		this.drawManager.drawCenteredRegularString(this, "SHOP", this.getHeight() / 3);
+		this.drawManager.drawScreenTitle(this, MenuItem.SHOP.getTitle());
 		this.drawManager.completeDrawing(this);
 	}
 }
