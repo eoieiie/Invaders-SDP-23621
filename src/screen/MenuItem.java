@@ -23,7 +23,7 @@ public enum MenuItem {
 	/** Shop screen. */
 	SHOP("Shop", 5, true),
 	/** Achievements screen. */
-	ACHIEVEMENTS("Achievements", 6, false),
+	ACHIEVEMENTS("Achievements", 6, true),
 	/** Ship selection screen. */
 	SHIP_SELECT("Ship select", 7, true),
 	/** Closes the game. */
