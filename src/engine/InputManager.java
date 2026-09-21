@@ -3,13 +3,18 @@ package engine;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 
+//Mouset import
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
+
 /**
- * Manages keyboard input for the provided screen.
+ * Manages keyboard and mouse input for the provided screen.
  * 
  * @author <a href="mailto:RobertoIA1987@gmail.com">Roberto Izquierdo Amo</a>
  * 
  */
-public final class InputManager implements KeyListener {
+public final class InputManager implements KeyListener, MouseMotionListener,MouseListener {
 
 	/** Number of recognised keys. */
 	private static final int NUM_KEYS = 256;
@@ -80,5 +85,89 @@ public final class InputManager implements KeyListener {
 	@Override
 	public void keyTyped(final KeyEvent key) {
 
+	}
+
+	// modify mouse
+
+	/*Current mouse Y position */
+	private int mouseY;
+	public int getMouseY() {
+    	return mouseY;
+	}
+	/* Whether the mouse has moved since the last check.*/
+	private boolean isMoved = false;
+	/* Check Mouse button clicked*/
+	private boolean isClick;
+
+	/**
+	* return mouse button is currently held down.
+
+	 @return true if a mouse button is held down
+	*/
+	public boolean getIsClick()
+	{ return isClick;}
+
+
+	/**
+	 * Updates the mouse Y and record mouse movement.
+	 * 
+	 * @param e
+	 * 			Mouse movement event.
+	 */
+	@Override 
+	public void mouseMoved(MouseEvent e){
+		
+		mouseY = e.getY();
+		isMoved = true;
+
+	}
+
+	/**
+	 * Returns whether the mouse has moved since the last check
+	 * 
+	 *  @return true if movement was recorded
+	 */
+	
+	public boolean isMouseMoved(){
+		boolean moved = isMoved;
+		isMoved = false;
+		return moved;
+	}
+
+	@Override 
+	public void mouseDragged(MouseEvent e){
+	}
+
+	@Override 
+	public void mouseClicked(MouseEvent e){
+	}
+
+	/**
+	* Mouse button as pressed.
+	*
+	* @param e Mouse event containing button and position information.
+	*/
+	@Override 
+	public void mousePressed(MouseEvent e){
+		isClick = true;
+	}
+	/**
+	* Mouse button as released.
+	* 
+	*
+	*/
+	@Override 
+	public void mouseReleased(MouseEvent e){
+		isClick = false;
+	}
+	
+	@Override 
+	public void mouseEntered(MouseEvent e){}
+
+
+	//Clears the mouse button state when the mouse exits the component.
+	@Override 
+	public void mouseExited(MouseEvent e){
+		isClick = false;
 	}
 }

@@ -44,8 +44,12 @@ public class Frame extends JFrame {
 		setTitle("Invaders");
 
 		addKeyListener(Core.getInputManager());
-	}
 
+		// Register mouse movement and button listeners
+		getContentPane().addMouseMotionListener(Core.getInputManager());
+		getContentPane().addMouseListener(Core.getInputManager());
+	
+	}
 	/**
 	 * Sets current screen.
 	 * 
