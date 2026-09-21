@@ -92,7 +92,7 @@ public final class InputManager implements KeyListener, MouseMotionListener,Mous
 	/*Current mouse Y position */
 	private int mouseY;
 	public int getMouseY() {
-    	return mouseY;
+		return mouseY;
 	}
 	/* Whether the mouse has moved since the last check.*/
 	private boolean isMoved = false;
@@ -110,13 +110,13 @@ public final class InputManager implements KeyListener, MouseMotionListener,Mous
 
 	/**
 	 * Updates the mouse Y and record mouse movement.
-	 * 
+	 *
 	 * @param e
 	 * 			Mouse movement event.
 	 */
-	@Override 
+	@Override
 	public void mouseMoved(MouseEvent e){
-		
+
 		mouseY = e.getY();
 		isMoved = true;
 
@@ -124,21 +124,21 @@ public final class InputManager implements KeyListener, MouseMotionListener,Mous
 
 	/**
 	 * Returns whether the mouse has moved since the last check
-	 * 
+	 *
 	 *  @return true if movement was recorded
 	 */
-	
+
 	public boolean isMouseMoved(){
 		boolean moved = isMoved;
 		isMoved = false;
 		return moved;
 	}
 
-	@Override 
+	@Override
 	public void mouseDragged(MouseEvent e){
 	}
 
-	@Override 
+	@Override
 	public void mouseClicked(MouseEvent e){
 	}
 
@@ -147,26 +147,26 @@ public final class InputManager implements KeyListener, MouseMotionListener,Mous
 	*
 	* @param e Mouse event containing button and position information.
 	*/
-	@Override 
+	@Override
 	public void mousePressed(MouseEvent e){
 		isClick = true;
 	}
 	/**
 	* Mouse button as released.
-	* 
+	*
 	*
 	*/
-	@Override 
+	@Override
 	public void mouseReleased(MouseEvent e){
 		isClick = false;
 	}
-	
-	@Override 
+
+	@Override
 	public void mouseEntered(MouseEvent e){}
 
 
 	//Clears the mouse button state when the mouse exits the component.
-	@Override 
+	@Override
 	public void mouseExited(MouseEvent e){
 		isClick = false;
 	}

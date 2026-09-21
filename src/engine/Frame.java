@@ -48,7 +48,7 @@ public class Frame extends JFrame {
 		// Register mouse movement and button listeners
 		getContentPane().addMouseMotionListener(Core.getInputManager());
 		getContentPane().addMouseListener(Core.getInputManager());
-	
+
 	}
 	/**
 	 * Sets current screen.

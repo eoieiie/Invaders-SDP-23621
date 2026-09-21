@@ -69,15 +69,15 @@ public class TitleScreen extends Screen {
 			else
 				updateMenu();
 		}
-		
-		
+
+
 		/*  Update the menu selection when the mouse has moved.*/
 		if(inputManager.isMouseMoved() && !this.showingExitConfirm){
 			if(drawManager.menuItemAt(this, inputManager.getMouseY()) != null){
 				this.selected = drawManager.menuItemAt(this, inputManager.getMouseY());;
 			}
 		}
-		
+
 	}
 
 	/**
