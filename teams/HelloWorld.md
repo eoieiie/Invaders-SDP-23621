@@ -28,7 +28,7 @@ so that the features implemented by other teams operate without any issues.
 - Build the Achievements screen shell (contents by the Records & Achievements team)
 - Build the Shop screen shell (contents by the Currency and Item teams)
 
-##Detailed Requirements
+## Detailed Requirements
 
 * **Menu framework**
 	* Replace the hard-coded options in `TitleScreen`with a menu item list so that other teams can add a screen by adding one item.
