@@ -3,7 +3,6 @@ package engine;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 
-//Mouset import
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
@@ -14,14 +13,20 @@ import java.awt.event.MouseMotionListener;
  * @author <a href="mailto:RobertoIA1987@gmail.com">Roberto Izquierdo Amo</a>
  * 
  */
-public final class InputManager implements KeyListener, MouseMotionListener,MouseListener {
+public final class InputManager implements KeyListener, MouseMotionListener, MouseListener {
 
 	/** Number of recognised keys. */
 	private static final int NUM_KEYS = 256;
-	/** Array with the jeys marked as pressed or not. */
+	/** Array with the keys marked as pressed or not. */
 	private static boolean[] keys;
 	/** Singleton instance of the class. */
 	private static InputManager instance;
+	/** Current mouse Y position. */
+	private int mouseY;
+	/** Whether the mouse has moved since the last check. */
+	private boolean isMoved = false;
+	/** Whether a mouse button is currently held down. */
+	private boolean isClick;
 
 	/**
 	 * Private constructor.
@@ -87,35 +92,32 @@ public final class InputManager implements KeyListener, MouseMotionListener,Mous
 
 	}
 
-	// modify mouse
-
-	/*Current mouse Y position */
-	private int mouseY;
+	/**
+	 * Returns the current mouse Y position.
+	 *
+	 * @return Current mouse Y position.
+	 */
 	public int getMouseY() {
 		return mouseY;
 	}
-	/* Whether the mouse has moved since the last check.*/
-	private boolean isMoved = false;
-	/* Check Mouse button clicked*/
-	private boolean isClick;
+	
+	/**
+	 * Returns whether a mouse button is currently held down.
+	 *
+	 * @return true if a mouse button is held down.
+	 */
+	public boolean isMousePressed() { 
+		return isClick;
+	}
 
 	/**
-	* return mouse button is currently held down.
-
-	 @return true if a mouse button is held down
-	*/
-	public boolean getIsClick()
-	{ return isClick;}
-
-
-	/**
-	 * Updates the mouse Y and record mouse movement.
+	 * Updates the mouse Y position and records mouse movement.
 	 *
 	 * @param e
 	 * 			Mouse movement event.
 	 */
 	@Override
-	public void mouseMoved(MouseEvent e){
+	public void mouseMoved(final MouseEvent e) {
 
 		mouseY = e.getY();
 		isMoved = true;
@@ -128,46 +130,64 @@ public final class InputManager implements KeyListener, MouseMotionListener,Mous
 	 *  @return true if movement was recorded
 	 */
 
-	public boolean isMouseMoved(){
+	public boolean isMouseMoved() {
 		boolean moved = isMoved;
 		isMoved = false;
 		return moved;
 	}
-
-	@Override
-	public void mouseDragged(MouseEvent e){
-	}
-
-	@Override
-	public void mouseClicked(MouseEvent e){
-	}
-
 	/**
-	* Mouse button as pressed.
-	*
-	* @param e Mouse event containing button and position information.
-	*/
+	 * Does nothing.
+	 * 
+	 * @param e Mouse event.
+	 */
 	@Override
-	public void mousePressed(MouseEvent e){
+	public void mouseDragged(final MouseEvent e) {
+	}
+	/**
+	 * Does nothing.
+	 * 
+	 * @param e Mouse event.
+	 */
+	@Override
+	public void mouseClicked(final MouseEvent e) {
+	}
+	/**
+	 * Marks the mouse button as pressed
+	 * 
+	 * @param e Mouse event containing button and position information.
+	 */
+	@Override
+	public void mousePressed(final MouseEvent e) {
 		isClick = true;
 	}
 	/**
-	* Mouse button as released.
-	*
-	*
-	*/
+	 * Marks the mouse buttons as released
+	 *
+	 * @param e Mouse event containing button and position information.
+	 */
 	@Override
-	public void mouseReleased(MouseEvent e){
+	public void mouseReleased(final MouseEvent e) {
 		isClick = false;
 	}
-
+	/**
+	 * Does nothing.
+	 * 
+	 * @param e Mouse event.
+	 *            
+	 */
 	@Override
-	public void mouseEntered(MouseEvent e){}
+	public void mouseEntered(final MouseEvent e) {
+
+	}
 
 
-	//Clears the mouse button state when the mouse exits the component.
+	/**
+	 * Clears the mouse button state when the mouse exits the component.
+	 * 
+	 * @param e Mouse event.
+	 */
 	@Override
-	public void mouseExited(MouseEvent e){
+	public void mouseExited(final MouseEvent e) {
 		isClick = false;
 	}
 }

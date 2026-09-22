@@ -45,7 +45,6 @@ public class Frame extends JFrame {
 
 		addKeyListener(Core.getInputManager());
 
-		// Register mouse movement and button listeners
 		getContentPane().addMouseMotionListener(Core.getInputManager());
 		getContentPane().addMouseListener(Core.getInputManager());
 
