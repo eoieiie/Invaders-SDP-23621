@@ -20,6 +20,8 @@ public class TitleScreen extends Screen {
 	private Cooldown selectionCooldown;
 	/** Menu item the cursor is on. */
 	private MenuItem selected;
+	/** Item the cursor was on when the menu last closed. */
+	private static MenuItem lastSelected = MenuItem.first();
 	/** Whether the exit confirmation is open. */
 	private boolean showingExitConfirm;
 	/** Whether the cursor in the confirmation is on Yes. */
@@ -38,8 +40,8 @@ public class TitleScreen extends Screen {
 	public TitleScreen(final int width, final int height, final int fps) {
 		super(width, height, fps);
 
-		// Starts on the topmost item.
-		this.selected = MenuItem.first();
+		// Starts where the cursor was when the menu last closed.
+		this.selected = lastSelected;
 		this.selectionCooldown = Core.getCooldown(SELECTION_TIME);
 		this.selectionCooldown.reset();
 	}
@@ -149,6 +151,7 @@ public class TitleScreen extends Screen {
 			this.selectionCooldown.reset();
 			return;
 		}
+		lastSelected = this.selected;
 		this.returnCode = this.selected.getCode();
 		this.isRunning = false;
 	}
