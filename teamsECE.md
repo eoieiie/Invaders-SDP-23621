@@ -8,12 +8,12 @@ Team ECE is responsible for building the Gameplay HUD for the Invaders-SDP-23621
 
 | Name | Role | GitHub |
 |------|------|--------|
-| Maxence Morcillo | Documentation and Communication  | [maxinator196](https://github.com/maxinator196)|
+| Maxence Morcillo | Team Leader | [] |
 | Thomas Duval | UI/Overlay | [TraderX-2](https://github.com/TraderX-2) |
 | Thomas Favre | QA/Testeur | [fvpok](https://github.com/fvpok) |
 | Hugo Fedoroff | HUD Developer (Score and Lives) | [Hugofedoroff](https://github.com/Hugofedoroff) |
 | Roch Le Pere De Graveron | Dependency Integration | [Rochdgrvrn](https://github.com/Rochdgrvrn) |
-| Robin Sénéchal | Team Leader | [Robinsène](https://github.com/Robinsene) |
+| Robin Sénéchal | Documentation and Communication | [Robinsène](https://github.com/Robinsène) |
 | Eliott Siquier | HUD Developer (Level and Weapon/Power-up) | [eliottlemaxibg](https://github.com/eliottlemaxibg) |
 | Ghali Benharbit | Gameplay integration | [GhaliBenh](https://github.com/GhaliBenh) |
 

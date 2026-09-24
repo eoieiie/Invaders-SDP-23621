@@ -19,21 +19,32 @@ Our team focuses on developing the Records & Achievements System for Space Invad
 | Syafiq | Front-end | [Fiq](https://github.com/syafiqnorfandhi) |
 
 ## Requirements
-- Records: Persistent tracking of player performance data
-- A milestone-based reward system that unlocks
-- Achievement system based on high score
-- Achievement system based on high score without losing lives
-- Achievements system on Coin System
-- Achievements system on when players reach specific in-game goals
-- Achievements system based on their accuracy
+- Records: Persistent tracking of player performance data (username, currency, hit accuracy per run, unlocked achievements, unlocked items/skins/models, unlocked modes, time taken per run), stored per save file.
+- A milestone-based reward system that unlocks in-game rewards (coin bonuses, and premium currency for Gold-tier clears) as players cross score, survival, and progression milestones.
+- Score achievements: unlock at 1,000 / 5,000 / 10,000 points reached in a single run, each rewarding 1,000 coins.
+- No-hit score achievements: unlock at 1,000 / 10,000 points reached in a single run without the player taking any damage.
+- Tiered achievement system (5 criteria × 3 tiers = 15 achievements):
+  - **Damage/Survival** — Bronze: finish a run without dying. Silver: finish with more than 1 heart remaining. Gold: finish without taking any damage.
+  - **Hit Accuracy** — Bronze/Silver/Gold thresholds TBD, pending confirmation with Gameplay team on how accuracy is tracked.
+  - **Items Unlocked** — Bronze: 10% of items unlocked. Silver: 50%. Gold: 100%.
+  - **Total Enemies Killed (lifetime)** — Bronze: 100. Silver: 500. Gold: 1,000.
+  - **Currency Collected** — Bronze/Silver/Gold thresholds TBD, pending confirmation with Currency team on whether this is a lifetime total or per-run amount.
+- Non-tiered achievements:
+  - defeat the first enemy
+  - unlock endless mode
+  - beat level 10 with every ship model
+  -beat the game using the starter (weakest) ship
+- Hidden achievements:
+  - unlock all other achievements (normal + hidden)
 
 
 ## Dependencies on Other Teams
-### 1. Level Design System
--Designing various achievements for multiple gamemode. Depending on Level Design System Team to inform the details of their level design so we can implement some achievement to award the players something. It will create a challenge for player to grind for.
 
-### 2. Sound Effects
--We are going to depends on Sound Effects Team to make some sound effects whenever the player got the achievement. It might depends slightly by achievement's type to make it more diverse.
+### 1. Level Design System (KFC)
+Need level count and endless-mode existence confirmed to implement "beat level 10 with every ship model" and endless-mode achievements.
 
-### 3. Coin System
--The coin system will make it possible for players to farm more of the currencies. We will going to use that to make some achievements based on that. For example, We wil give achievement whenever player reach a certain amount of the said currencies
+### 2. Coin System (GOG)
+Need a public method to add coins (e.g. `addCoins(int amount)`) for achievement rewards, and a way to query total currency collected for the Currency Collected tier.
+
+### 3. Main Menu (Hello World)
+Main Menu team requested an Achievements tab — need to expose a method that returns the current unlock status list for display.

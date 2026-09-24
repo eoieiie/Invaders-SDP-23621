@@ -30,12 +30,21 @@ so that the features implemented by other teams operate without any issues.
 
 ## Detailed Requirements
 
-* **Menu framework:** Replace the hard-coded options in `TitleScreen` with a menu item list so that other teams can add a screen by adding one item.
-* **Mouse support:** Menu items can be selected by mouse click, with hover highlight.
-* **Key hints & exit confirmation:** Footer showing available keys; Exit asks for confirmation.
-* **Settings UI:** Volume controls (BGM/SFX) and key binding display.
-* **Shop screen shell:** Screen reachable from the menu with a placeholder layout. Currency, items, and purchase logic are provided by the Currency and Item teams.
-* **Achievements screen shell:** Screen reachable from the menu with a placeholder layout. Achievement data and unlock logic are provided by the Records & Achievements team.
+* **Menu framework**
+	* Replace the hard-coded options in `TitleScreen`with a menu item list so that other teams can add a screen by adding one item.
+* **Mouse support**
+	* Menu items can be selected by mouse click, with hover highlight.
+* **Key hints & exit confirmation**
+	* **Key hints**: A footer on the title screen lists the keys available in the current state.
+	* **Exit confirmation**: Choosing Exit opens a Yes/No confirmation with the cursor on No. While the dialog is open, the menu does not respond to input and the footer shows the dialog's keys.
+* **Settings UI**
+	* **Volume controls: Use vertical volume sliders controlled by the mouse, with Left/Right keys adjusting volume by 10 percentage points. Play a preview sound after each adjustment.** 
+	* **Key binding display:** Displays the current default controls (Move: A/D and Arrow keys, Shoot: Space, Back: ESC) as static text.
+* **Shop screen shell**
+	* Screen reachable from the menu with a placeholder layout. Currency, items, and purchase logic are provided by the Currency and Item teams.
+* **Achievements screen shell**
+	* Screen reachable from the menu with a placeholder layout. Achievement data and unlock logic are provided by the Records & Achievements team.
+ 
 
 ## Dependencies on Other Teams
 

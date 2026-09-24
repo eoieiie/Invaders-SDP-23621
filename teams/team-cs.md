@@ -13,12 +13,9 @@ Team CS is responsible for designing and implementing the **Item System** for th
 | Son DongYeol | [playlistSDY](https://github.com/playlistSDY) | Item data model & architecture |
 | Cho SeongGil | [ancho040220](https://github.com/ancho040220) | Director, Developer  |
 | Choi Jian | [choichoi10](https://github.com/choichoi10) | Director, Developer |
-| Choi GeonHee | [choigeonhee2025](https://github.com/choigeonhee2025) | Developer |
 | Kim JiHo | [GTMBB](https://github.com/GTMBB) | Director, Developer |
 | Choi JiMin | [zPHf25N](https://github.com/zPHf25N) | Developer + (visual) |
 | Kim HanGyeol | [han31415920512](https://github.com/han31415920512) | Developer |
-
-> Roles above are a proposed draft — update to match the team's actual agreement before submitting.
 
 ## Team Requirements
 
@@ -26,10 +23,10 @@ Team CS owns the **Item System** requirement: items that spawn during gameplay, 
 
 ## Detailed Requirements
 
-1. **Item Drop System** — Destroying the red (special) ship guarantees an item drop. Destroying a regular alien drops an item probabilistically. Drop probability values are to be finalized in consultation with the Level Design team.
+1. **Item Drop System** — Destroying the red (special) ship guarantees an item drop (100% rate). Destroying a regular alien drops an item with a 15% base probability. These are Team CS's initial values and may be tuned together with the Level Design team as level balancing progresses.
 2. **Item Pickup & Storage** — A dropped item is collected when the player's ship touches it. Passive items apply their effect immediately on pickup. Active items are stored and only applied when the player presses a dedicated "use item" key (Mario Kart item-box style).
 3. **Active/Passive Item Classification** — Define a data structure that classifies each item as either Active (stored, triggered by key press) or Passive (instant effect on pickup), so other systems can query an item's category without depending on Item System internals.
-4. **Life Item** — Grants an extra life. Whether it is stored for later use or applied instantly depends on the player's current max-life cap; exact policy to be decided with the Level Design team.
+4. **Life Item** — Grants an extra life. If the player's current lives are below the max-life cap (default: 5), the life is applied instantly; if the player is already at the cap, the pickup instead grants a 500-point score bonus so it is not wasted. The max-life cap is Team CS's initial value and may be adjusted together with the Level Design team.
 5. **Shield Item** — On use/pickup, negates exactly one incoming hit within a 10-second window; the effect ends when that window expires or after it absorbs one hit, whichever comes first.
 6. **Rapid Fire Item** — Increases the player's firing rate by 50% for the duration of the current level.
 7. **Bullet Speed Item** — Increases projectile speed by 5–10% for the duration of the current level.
@@ -38,5 +35,5 @@ Team CS owns the **Item System** requirement: items that spawn during gameplay, 
 ## Dependencies on Other Teams
 
 1. **Visual Effect System** — Item drop appearance and pickup/activation visuals need to be agreed upon with the Visual Effect (graphics) team.
-2. **Level Design System** — Item drop probabilities, and the exact rules for the Life and Shield items, need to be finalized jointly with the Level Design team.\
+2. **Level Design System** — The initial drop-probability and max-life-cap values above are Team CS's own working defaults; they need to be reviewed and tuned jointly with the Level Design team as overall level balance is set.
 3. **Gameplay HUD** — Displaying which Active item the player is currently holding (before it is used) requires a shared interface with the HUD team.
