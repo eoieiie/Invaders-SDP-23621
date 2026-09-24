@@ -16,16 +16,16 @@ public enum MenuItem {
 
 	/** Starts the game. */
 	PLAY("Play", 2, true),
-	/** Shows the high score table. */
-	HIGH_SCORES("High scores", 3, true),
-	/** Settings screen. */
-	SETTINGS("Settings", 4, true),
+	/** Ship selection screen. */
+	SHIP_SELECT("Ship select", 7, true),
 	/** Shop screen. */
 	SHOP("Shop", 5, true),
 	/** Achievements screen. */
 	ACHIEVEMENTS("Achievements", 6, true),
-	/** Ship selection screen. */
-	SHIP_SELECT("Ship select", 7, true),
+	/** Shows the high score table. */
+	HIGH_SCORES("High scores", 3, true),
+	/** Settings screen. */
+	SETTINGS("Settings", 4, true),
 	/** Closes the game. */
 	EXIT("Exit", 0, true);
 
