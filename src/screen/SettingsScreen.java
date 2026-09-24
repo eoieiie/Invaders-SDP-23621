@@ -64,7 +64,7 @@ public class SettingsScreen extends Screen {
 				currentMenuItem = Math.max(0, currentMenuItem - 1);
 				this.selectionCooldown.reset();
 			} else if (this.inputManager.isKeyDown(KeyEvent.VK_DOWN)) {
-				currentMenuItem = Math.min(3, currentMenuItem + 1);
+				currentMenuItem = Math.min(2, currentMenuItem + 1);
 				this.selectionCooldown.reset();
 			}
 
@@ -79,7 +79,7 @@ public class SettingsScreen extends Screen {
 			}
 
 			if (this.inputManager.isKeyDown(KeyEvent.VK_SPACE) || this.inputManager.isKeyDown(KeyEvent.VK_ENTER)) {
-				if (currentMenuItem == 3) {
+				if (currentMenuItem == 2) {
 					this.isRunning = false;
 				}
 				this.selectionCooldown.reset();
@@ -92,27 +92,30 @@ public class SettingsScreen extends Screen {
 	 */
 	private void draw() {
 		this.drawManager.initDrawing(this);
-		this.drawManager.drawScreenTitle(this, MenuItem.SETTINGS.getTitle());
+		this.drawManager.drawScreenTitle(
+				this, MenuItem.SETTINGS.getTitle());
 		int baseY = this.getHeight() / 3;
 		String bgmStr = "BGM Volume: < " + bgmVolume + "% >";
 		String sfxStr = "SFX Volume: < " + sfxVolume + "% >";
 
 		String m0 = (currentMenuItem == 0 ? "-> " : "") + bgmStr;
 		String m1 = (currentMenuItem == 1 ? "-> " : "") + sfxStr;
-		String m2 = (currentMenuItem == 2 ? "-> " : "") + "Key Bindings";
-		String m3 = (currentMenuItem == 3 ? "-> " : "") + "Back";
+		String m2 = "Key Bindings";
+		String m3 = (currentMenuItem == 2 ? "-> " : "") + "Back";
 
-		this.drawManager.drawCenteredRegularString(this, m0, baseY);
-		this.drawManager.drawCenteredRegularString(this, m1, baseY + SPACING);
+		this.drawManager.drawSettingsText(this, m0, baseY,
+				currentMenuItem == 0);
+		this.drawManager.drawSettingsText(this, m1, baseY + SPACING,
+				currentMenuItem == 1);
 
-		this.drawManager.drawCenteredRegularString(this, m2, baseY + SPACING * 3);
+		this.drawManager.drawSettingsText(this, m2, baseY + SPACING * 3, false);
 
-		this.drawManager.drawCenteredRegularString(this, "- Move Left: A / Left Arrow -", baseY + SPACING * 4);
-		this.drawManager.drawCenteredRegularString(this, "- Move Right: D / Right Arrow -", baseY + SPACING * 5);
-		this.drawManager.drawCenteredRegularString(this, "- Shoot: Space -", baseY + SPACING * 6);
-		this.drawManager.drawCenteredRegularString(this, "- Back: ESC -", baseY + SPACING * 7);
+		this.drawManager.drawSettingsText(this, "- Move Left: A / Left Arrow -", baseY + SPACING * 4, false);
+		this.drawManager.drawSettingsText(this, "- Move Right: D / Right Arrow -", baseY + SPACING * 5, false);
+		this.drawManager.drawSettingsText(this, "- Shoot: Space -", baseY + SPACING * 6, false);
+		this.drawManager.drawSettingsText(this, "- Back: ESC -", baseY + SPACING * 7, false);
 
-		this.drawManager.drawCenteredRegularString(this, m3, baseY + SPACING * 9);
+		this.drawManager.drawSettingsText(this, m3, baseY + SPACING * 9, currentMenuItem == 2);
 
 		this.drawManager.completeDrawing(this);
 	}

@@ -665,4 +665,23 @@ public final class DrawManager {
 			drawCenteredBigString(screen, "GO!", screen.getHeight() / 2
 					+ fontBigMetrics.getHeight() / 3);
 	}
+	/**
+	 * Draws centered text for the settings screen.
+	 *
+	 * @param screen
+	 *            Screen to draw on.
+	 * @param string
+	 *            Text to draw.
+	 * @param height
+	 *            Height of the drawing.
+	 * @param selected
+	 *            Whether the text is currently selected.
+	 */
+	public void drawSettingsText(final Screen screen,
+								 final String string, final int height,
+								 final boolean selected) {
+		backBufferGraphics.setColor(
+				selected ? Color.GREEN : Color.WHITE);
+		drawCenteredRegularString(screen, string, height);
+	}
 }
