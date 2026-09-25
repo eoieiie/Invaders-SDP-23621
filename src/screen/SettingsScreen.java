@@ -103,19 +103,24 @@ public class SettingsScreen extends Screen {
 		String m2 = "Key Bindings";
 		String m3 = (currentMenuItem == 2 ? "-> " : "") + "Back";
 
-		this.drawManager.drawSettingsText(this, m0, baseY,
+		this.drawManager.drawMenuRow(this, m0, baseY,
 				currentMenuItem == 0);
-		this.drawManager.drawSettingsText(this, m1, baseY + SPACING,
+		this.drawManager.drawMenuRow(this, m1, baseY + SPACING,
 				currentMenuItem == 1);
 
-		this.drawManager.drawSettingsText(this, m2, baseY + SPACING * 3, false);
+		this.drawManager.drawMenuRow(this, m2, baseY + SPACING * 3, false);
 
-		this.drawManager.drawSettingsText(this, "- Move Left: A / Left Arrow -", baseY + SPACING * 4, false);
-		this.drawManager.drawSettingsText(this, "- Move Right: D / Right Arrow -", baseY + SPACING * 5, false);
-		this.drawManager.drawSettingsText(this, "- Shoot: Space -", baseY + SPACING * 6, false);
-		this.drawManager.drawSettingsText(this, "- Back: ESC -", baseY + SPACING * 7, false);
+		this.drawManager.drawMenuRow(this, "- Move Left: A / Left Arrow -",
+				baseY + SPACING * 4, false);
+		this.drawManager.drawMenuRow(this, "- Move Right: D / Right Arrow -",
+				baseY + SPACING * 5, false);
+		this.drawManager.drawMenuRow(this, "- Shoot: Space -",
+				baseY + SPACING * 6, false);
+		this.drawManager.drawMenuRow(this, "- Back: ESC -",
+				baseY + SPACING * 7, false);
 
-		this.drawManager.drawSettingsText(this, m3, baseY + SPACING * 9, currentMenuItem == 2);
+		this.drawManager.drawMenuRow(this, m3,
+				baseY + SPACING * 9, currentMenuItem == 2);
 
 		this.drawManager.completeDrawing(this);
 	}

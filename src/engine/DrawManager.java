@@ -677,7 +677,7 @@ public final class DrawManager {
 	 * @param selected
 	 *            Whether the text is currently selected.
 	 */
-	public void drawSettingsText(final Screen screen,
+	public void drawMenuRow(final Screen screen,
 								 final String string, final int height,
 								 final boolean selected) {
 		backBufferGraphics.setColor(
