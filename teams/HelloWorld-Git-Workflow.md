@@ -23,7 +23,7 @@ We chose it for these reasons:
 | How fast do changes need to integrate? | Most of us had never opened a pull request before this course, and our features are small. A screen shell is around 60 lines, and the settings screen, which has the most in it, is about 120. | Branches live one or two days, one or two people review each pull request, and a CI job compiles every pull request. |
 | How does the project release? | There is no version to release. The game in the course repository is the product and it changes whenever a team merges. | Release from the development line. No release branches. |
 | Which versions need maintenance? | Only the current one. Nothing older is kept. | No maintenance branches. A fix is just another pull request. |
-| Who owns integration? | Every other team's screen is opened from our main menu, so a mistake here shows up everywhere. | Two reviewers inside the team. One access holder opens every pull request to the course repository and keeps the fork in sync, but another team merges it. |
+| Who owns integration? | Every other team's screen is opened from our main menu, so a mistake here shows up everywhere. | One required approval inside the team, plus a second reviewer when the author asks for one. One access holder opens every pull request to the course repository and keeps the fork in sync, but another team merges it. |
 
 What we did not choose:
 
@@ -55,8 +55,17 @@ On top of this we run one-week sprints: plan on Tuesday, a three-line update on 
 Rules:
 
 - Branch names are `hello-world/` plus a short feature name, like `hello-world/menu-framework` or `hello-world/shop-shell`.
-- Cut the branch from the latest fork `main`. Before opening the pull request, merge `main` into the branch again so there are no conflicts.
+- Cut the branch from the latest fork `main`. Before opening the pull request, run `git fetch origin` and `git merge origin/main` so the branch has the latest `main` and no conflicts. A plain `git merge main` only brings in your local copy, which may be days old.
 - Never open an upstream pull request from fork `main` directly. `main` keeps moving, so anything merged afterwards would quietly be added to the open pull request. The access holder cuts a `to-upstream/<feature>` branch at that feature's commit and opens the pull request from there. We learned this on upstream #22, which we closed and reopened as #23.
+- Everything merged into fork `main` also goes to the course repository, so nothing that stays in the fork sits underneath a feature. This plan goes upstream as its own pull request for the same reason.
+- Which commit to cut `to-upstream/<feature>` from depends on what sits before the feature on fork `main`:
+
+  | Earlier commits on fork `main` are… | Do this |
+  |---|---|
+  | already in the course repository | cut at the feature's squash commit, as above |
+  | in an upstream pull request that is still open | cut as above, and put `Depends on: #N` on the first line |
+  | not needed by this feature, and it should not wait | branch from `upstream/main` and cherry-pick only the feature's squash commit |
+
 - No `develop` branch and no release branches.
 
 ## 3. Commit Rules
@@ -82,7 +91,7 @@ A commit template is in the repository as `.gitmessage.txt`, and each member run
 
 Because we squash, the pull request title becomes the commit that lands on `main`, so it follows the same format: `type: subject`, imperative, no full stop, under 50 characters. One of ours went over before we noticed, #12 at 61 characters.
 
-Pull requests to the course repository add our scope, `feat(main-menu): ...`, so the other eight teams can tell at a glance which team a pull request comes from.
+Pull requests to the course repository use `<type>(main-menu): <subject>`, for example `feat(main-menu): ...` or `fix(main-menu): ...`, so the other eight teams can tell at a glance which team a pull request comes from.
 
 ## 4. Pull Request and Code Review Rules
 
@@ -90,7 +99,7 @@ Pull requests to the course repository add our scope, `feat(main-menu): ...`, so
 
 **Description.** The template is in the repository at `.github/pull_request_template.md` and appears on its own: What, Why, Changes, How to test with steps a reviewer can actually press, Screenshots for anything visible on screen, and a checklist. Sections that do not apply can be deleted, but the checklist stays.
 
-**Reviewers.** The author asks one or two people, not the whole team. One reads the code, one runs the How to test steps on their own machine. Who does which is decided per pull request, whoever is free.
+**Reviewers.** One approval is required. The author asks one person, or two when the change is large or touches a shared file, never the whole team. With two, one reads the code and the other runs the How to test steps on their own machine. Who does which is decided per pull request, whoever is free.
 
 **Review comments** start with a priority tag so the author knows what has to happen.
 
@@ -116,18 +125,18 @@ Pull requests to the course repository add our scope, `feat(main-menu): ...`, so
 | `to-upstream/<feature>` into the course repository | **Merge commit**, never squash | An upstream pull request can carry commits from several people. Squashing would turn them into one commit under whoever opened the pull request, and everyone else's work would disappear from the history. |
 | keeping a branch up to date | **Merge `main` into the branch**, not rebase | Rebase rewrites commits that are already pushed and needs force-push. It is blocked on `main`, and we avoid it on feature branches too because someone else's local copy breaks when history moves under them. Merging is safer for people who are new to git, and the squash at the end cleans up the extra merge commits anyway. |
 
-**Conflicts.** The author of the branch resolves them, on their own machine: merge the latest `main` into the branch, fix the marked lines, compile, run the game, push. Reviewers do not review a pull request that has conflicts. Our most common one is two people adding a `case` to the same `switch` in `Core.java`. It happened first between #8 and #9, then again between #8 and #11, and the rule is to keep both, in numeric order. For a conflict with another team's change, the access holder syncs the fork first, the author resolves it on the fork, and only then does the upstream pull request go up or get updated.
+**Conflicts.** The author of the branch resolves them, on their own machine: fetch and merge `origin/main` into the branch, fix the marked lines, compile, run the game, push. Reviewers do not review a pull request that has conflicts. Our most common one is two people adding a `case` to the same `switch` in `Core.java`. It happened first between #8 and #9, then again between #8 and #11, and the rule is to keep both, in numeric order. For a conflict with another team's change, the access holder syncs the fork first, the author resolves it on the fork, and only then does the upstream pull request go up or get updated.
 
 ## 6. Overall Development Workflow
 
 1. Take a task from the sprint plan, which lives in GitHub Issues on our fork.
 2. `git checkout main && git pull`, then `git checkout -b hello-world/<feature>`.
 3. Work in small commits. Push at least once a day.
-4. When it works end to end, `git merge main` into the branch, fix anything, run the game.
+4. When it works end to end, `git fetch origin` and `git merge origin/main` into the branch, fix anything, run the game.
 5. Push and open a pull request against the **fork's** `main`. Fill in the template, ask one or two reviewers.
 6. A reviewer runs the test steps and reads the code, with P tags on the comments. The author fixes and pushes. New commits clear the old approvals, so the reviewer approves again.
 7. With one approval and green CI, squash and merge. The branch is deleted automatically.
-8. The access holder cuts `to-upstream/<feature>` at that squash commit and opens a pull request against the **course repository's** `main`, titled `feat(main-menu): ...`, with `Depends on: #N` on the first line if it builds on an earlier upstream pull request. The team leader posts the link in the leaders' channel.
+8. The access holder cuts `to-upstream/<feature>` at that squash commit and opens a pull request against the **course repository's** `main`, titled `<type>(main-menu): <subject>`, with `Depends on: #N` on the first line if it builds on an earlier upstream pull request. The team leader posts the link in the leaders' channel.
 9. Another team's access holder reviews it and merges it with a merge commit. We do not merge our own work there. Once it is in, our access holder presses Sync fork so our `main` matches the course repository again, and deletes the `to-upstream/<feature>` branch.
 
 ```mermaid
@@ -142,7 +151,7 @@ flowchart TB
         T["Task from the sprint plan<br/>GitHub Issue"]:::dev
         B["git checkout -b hello-world/feature<br/>from the latest fork main"]:::dev
         C["Small commits, type: subject<br/>push at least once a day"]:::dev
-        S["git merge main into the branch<br/>fix conflicts, run the game"]:::dev
+        S["git fetch, git merge origin/main<br/>fix conflicts, run the game"]:::dev
         T --> B --> C --> S
     end
 
@@ -160,7 +169,7 @@ flowchart TB
 
     subgraph L3["3. Course repository, oh-gnues/Invaders-SDP-23621"]
         direction TB
-        PR2["Pull request to its main<br/>title feat(main-menu): ...<br/>Depends on: #N if it builds on another"]:::up
+        PR2["Pull request to its main<br/>title type(main-menu): subject<br/>Depends on: #N if it builds on another"]:::up
         G2{"Reviewed and merged<br/>by another team?"}:::gate
         M2["MERGE COMMIT by that team<br/>every author's commit is kept"]:::up
         SYNC["Sync fork<br/>our main matches again"]:::up
@@ -179,7 +188,7 @@ Reading it: each block is one layer, and fewer people can write as you go down. 
 The same thing as text, in case the diagram does not render:
 
 ```
-[1. local]    task -> branch hello-world/<feature> -> small commits -> merge main in, fix, run
+[1. local]    task -> branch hello-world/<feature> -> small commits -> merge origin/main in, fix, run
                                                                               |
 [2. fork]     pull request to fork main <- author fixes <- changes requested  |
                     |                              ^                          |
@@ -188,9 +197,9 @@ The same thing as text, in case the diagram does not render:
 [3. upstream] pull request to course repo -> another team reviews and merges -> Sync fork -> back to [1]
 ```
 
-## 7. What changed in the first week, and why
+## 7. What changed, and why
 
-These rules changed between 15 and 21 September, each one because of something that happened on a real pull request. We expect the list to keep growing, and we go over it at the Tuesday planning meeting.
+These rules changed from 15 September on, each one because of something that happened on a real pull request. We expect the list to keep growing, and we go over it at the Tuesday planning meeting.
 
 | Date | Before | After | What happened | Where to see it |
 |---|---|---|---|---|
@@ -201,6 +210,7 @@ These rules changed between 15 and 21 September, each one because of something t
 | 9/18 | Reviewers catch formatting problems | A style checker on CI should catch them | Two of four screen pull requests needed an extra round for indentation, javadoc and spacing in log messages, which is reviewer time spent on something a tool does better. | fork #8, #9 |
 | 9/19 | Each screen sets its own colour before drawing a title | A `drawScreenTitle` helper | One review comment about black text on a black background applied to every screen, so one helper replaced four copies of the same workaround. | fork #9 review, #10 |
 | 9/21 | Tasks tracked in Slack messages | Tasks tracked as GitHub Issues | People were asking in chat who was doing what. | fork issues #14 to #20 |
+| 9/26 | `to-upstream/<feature>` always cut at the squash commit | Everything on fork `main` goes upstream; `Depends on` for ordered features; cherry-pick from `upstream/main` for an independent feature that should not wait | A teammate reviewing this document found that a commit kept only in the fork, such as this plan, would ride along in every later upstream pull request. | review thread on this document |
 
 Each rule came from a real failure, was discussed in the thread where it happened, and was written down the same day.
 
@@ -211,7 +221,7 @@ Things we decided not to settle yet, and what will make us come back to them.
 | Open question | Why we left it | We revisit it when |
 |---|---|---|
 | Upstream reviews can take days. Seven of our pull requests sat over a weekend because every reviewer is on another team with its own deadline. | We do not control other teams' time. Asking in person during class is what works now. | If pull requests regularly wait more than two class days, we propose a review rota in the leaders' channel. |
-| One person ended up reviewing most of six pull requests that landed in one weekend. | Two reviewers per pull request is enough at the rate we open them. | If more than three are open at once, we add a third regular reviewer. |
+| One person ended up reviewing most of six pull requests that landed in one weekend. | One required approval, with a second reviewer on request, is enough at the rate we open them. | If more than three are open at once, we add a third regular reviewer. |
 | Formatting is still checked by people. | We wanted a week of real pull requests first, to see which rules actually matter before turning a checker on. | Once the style checker runs on CI, the formatting items come off the review checklist. |
 | Other teams will edit our screens. The shop, achievements and ship select screens are ours only as far as the door, and the owning teams fill them in. | We have not agreed how those teams hand changes to those files back to us. | At the first pull request from another team that touches one of our screens. |
 | Upstream pull requests appear to contain each other until the earlier ones merge. | That is how snapshot branches work, and it is correct, but an outside reviewer can read it as one pull request doing too much. | If a reviewer from another team is confused by it, we add a line to the pull request template explaining it. |
