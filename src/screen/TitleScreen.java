@@ -71,6 +71,14 @@ public class TitleScreen extends Screen {
 			else
 				updateMenu();
 		}
+
+		if (inputManager.isMouseMoved() && !this.showingExitConfirm) {
+			MenuItem item = drawManager.menuItemAt(this, inputManager.getMouseY());
+			if (item != null) {
+				this.selected = item;
+			}
+		}
+
 	}
 
 	/**
@@ -89,6 +97,14 @@ public class TitleScreen extends Screen {
 		}
 		if (inputManager.isKeyDown(KeyEvent.VK_SPACE))
 			confirm();
+
+		if (inputManager.isMousePressed()) {
+			final MenuItem item = drawManager.menuItemAt(this, inputManager.getMouseY());
+			if (item != null) {
+				this.selected = item;
+				confirm();
+			}
+		}
 	}
 
 	/**
