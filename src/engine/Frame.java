@@ -44,8 +44,11 @@ public class Frame extends JFrame {
 		setTitle("Invaders");
 
 		addKeyListener(Core.getInputManager());
-	}
 
+		getContentPane().addMouseMotionListener(Core.getInputManager());
+		getContentPane().addMouseListener(Core.getInputManager());
+
+	}
 	/**
 	 * Sets current screen.
 	 * 
