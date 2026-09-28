@@ -181,3 +181,6 @@ log*
 
 .vscode/
 out/
+
+# Local high score file written at runtime (res/scores is the tracked default)
+/scores
