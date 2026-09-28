@@ -75,6 +75,8 @@ public final class Core {
 	private static Handler fileHandler;
 	/** Logger handler for printing to console. */
 	private static ConsoleHandler consoleHandler;
+	/** Persistent achievement progress manager. */
+	private static AchievementManager achievementManager;
 
 
 	/**
@@ -265,6 +267,17 @@ public final class Core {
 	 */
 	public static FileManager getFileManager() {
 		return FileManager.getInstance();
+	}
+
+	/**
+	 * Controls access to the achievement manager.
+	 *
+	 * @return Shared achievement manager.
+	 */
+	public static AchievementManager getAchievementManager() {
+		if (achievementManager == null)
+			achievementManager = new AchievementManager();
+		return achievementManager;
 	}
 
 	/**

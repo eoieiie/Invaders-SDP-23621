@@ -1,6 +1,10 @@
 package screen;
 
 import java.awt.event.KeyEvent;
+import java.util.List;
+
+import engine.Achievement;
+import engine.Core;
 
 /**
  * Implements the achievements screen shell.
@@ -51,15 +55,23 @@ public class AchievementsScreen extends Screen {
 	}
 
 	/**
-	 * Draws the title and placeholder text.
+	 * Draws available achievements.
 	 */
 	private void draw() {
 		this.drawManager.initDrawing(this);
 
 		this.drawManager.drawScreenTitle(
 				this, MenuItem.ACHIEVEMENTS.getTitle());
-		this.drawManager.drawCenteredRegularString(this,
-				"Coming soon - press ESC to return", this.height / 2);
+		List<Achievement> achievements = Core.getAchievementManager()
+				.getAchievements();
+		for (Achievement achievement : achievements) {
+			String status = achievement.isUnlocked() ? "UNLOCKED" : "LOCKED";
+			this.drawManager.drawCenteredRegularString(this,
+					achievement.getName() + " - " + status, this.height / 2);
+			this.drawManager.drawCenteredRegularString(this,
+					achievement.getDescription(),
+							this.height / 2 + this.height / 10);
+		}
 
 		this.drawManager.completeDrawing(this);
 	}

@@ -17,8 +17,11 @@ import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 import java.util.logging.Logger;
 
 import engine.DrawManager.SpriteType;
@@ -37,6 +40,8 @@ public final class FileManager {
 	private static Logger logger;
 	/** Max number of high scores. */
 	private static final int MAX_SCORES = 7;
+	/** Name of the file containing persistent player progress. */
+	private static final String PLAYER_PROFILE_FILE = "player-profile";
 
 	/**
 	 * private constructor.
@@ -267,5 +272,95 @@ public final class FileManager {
 			if (bufferedWriter != null)
 				bufferedWriter.close();
 		}
+	}
+
+	/**
+	 * Loads persistent player progress from disk.
+	 *
+	 * @return Loaded profile, or a new one when no profile has been saved.
+	 * @throws IOException In case of loading problems.
+	 */
+	public PlayerProfile loadPlayerProfile() throws IOException {
+		File profileFile = getPlayerProfileFile();
+		if (!profileFile.exists())
+			return new PlayerProfile();
+
+		InputStream inputStream = null;
+		try {
+			inputStream = new FileInputStream(profileFile);
+			Properties properties = new Properties();
+			properties.load(inputStream);
+
+			int totalEnemiesKilled = Integer.parseInt(properties.getProperty(
+					"totalEnemiesKilled", "0"));
+			Set<String> unlockedAchievements = new HashSet<String>();
+			String unlocked = properties.getProperty("unlockedAchievements", "");
+			if (!unlocked.isEmpty())
+				for (String achievementId : unlocked.split(","))
+					unlockedAchievements.add(achievementId);
+
+			logger.info("Loading player profile.");
+			return new PlayerProfile(totalEnemiesKilled, unlockedAchievements);
+		} finally {
+			if (inputStream != null)
+				inputStream.close();
+		}
+	}
+
+	/**
+	 * Saves persistent player progress to disk.
+	 *
+	 * @param playerProfile Player progress to save.
+	 * @throws IOException In case of saving problems.
+	 */
+	public void savePlayerProfile(final PlayerProfile playerProfile)
+			throws IOException {
+		File profileFile = getPlayerProfileFile();
+		if (!profileFile.exists())
+			profileFile.createNewFile();
+
+		OutputStream outputStream = null;
+		try {
+			outputStream = new FileOutputStream(profileFile);
+			Properties properties = new Properties();
+			properties.setProperty("totalEnemiesKilled", Integer.toString(
+					playerProfile.getTotalEnemiesKilled()));
+			properties.setProperty("unlockedAchievements", joinAchievementIds(
+					playerProfile.getUnlockedAchievements()));
+			properties.store(outputStream, "Space Invaders player profile");
+			logger.info("Saving player profile.");
+		} finally {
+			if (outputStream != null)
+				outputStream.close();
+		}
+	}
+
+	/**
+	 * Returns the file used to persist player progress.
+	 *
+	 * @return Player profile file.
+	 * @throws IOException In case the application directory cannot be decoded.
+	 */
+	private File getPlayerProfileFile() throws IOException {
+		String jarPath = FileManager.class.getProtectionDomain()
+				.getCodeSource().getLocation().getPath();
+		jarPath = URLDecoder.decode(jarPath, "UTF-8");
+		return new File(new File(jarPath).getParent(), PLAYER_PROFILE_FILE);
+	}
+
+	/**
+	 * Serializes achievement identifiers for the profile file.
+	 *
+	 * @param achievementIds Achievement identifiers.
+	 * @return Comma-separated achievement identifiers.
+	 */
+	private String joinAchievementIds(final Set<String> achievementIds) {
+		StringBuilder joinedIds = new StringBuilder();
+		for (String achievementId : achievementIds) {
+			if (joinedIds.length() > 0)
+				joinedIds.append(',');
+			joinedIds.append(achievementId);
+		}
+		return joinedIds.toString();
 	}
 }

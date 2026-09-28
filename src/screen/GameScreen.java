@@ -8,6 +8,7 @@ import engine.Cooldown;
 import engine.Core;
 import engine.GameSettings;
 import engine.GameState;
+import engine.Achievement;
 import entity.Bullet;
 import entity.BulletPool;
 import entity.EnemyShip;
@@ -35,6 +36,8 @@ public class GameScreen extends Screen {
 	private static final int BONUS_SHIP_EXPLOSION = 500;
 	/** Time from finishing the level to screen change. */
 	private static final int SCREEN_CHANGE_INTERVAL = 1500;
+	/** How long an achievement unlock popup remains visible. */
+	private static final int ACHIEVEMENT_POPUP_INTERVAL = 3000;
 	/** Height of the interface separation line. */
 	private static final int SEPARATION_LINE_HEIGHT = 40;
 
@@ -54,6 +57,10 @@ public class GameScreen extends Screen {
 	private Cooldown enemyShipSpecialExplosionCooldown;
 	/** Time from finishing the level to screen change. */
 	private Cooldown screenFinishedCooldown;
+	/** Time until the achievement unlock popup closes. */
+	private Cooldown achievementPopupCooldown;
+	/** Achievement currently shown in the unlock popup. */
+	private Achievement unlockedAchievement;
 	/** Set of all bullets fired by on screen ships. */
 	private Set<Bullet> bullets;
 	/** Current score. */
@@ -119,6 +126,8 @@ public class GameScreen extends Screen {
 		this.enemyShipSpecialExplosionCooldown = Core
 				.getCooldown(BONUS_SHIP_EXPLOSION);
 		this.screenFinishedCooldown = Core.getCooldown(SCREEN_CHANGE_INTERVAL);
+		this.achievementPopupCooldown = Core.getCooldown(
+				ACHIEVEMENT_POPUP_INTERVAL);
 		this.bullets = new HashSet<Bullet>();
 
 		// Special input delay / countdown.
@@ -233,6 +242,11 @@ public class GameScreen extends Screen {
 		drawManager.drawScore(this, this.score);
 		drawManager.drawLives(this, this.lives);
 		drawManager.drawHorizontalLine(this, SEPARATION_LINE_HEIGHT - 1);
+		if (this.unlockedAchievement != null) {
+			drawManager.drawAchievementUnlocked(this, this.unlockedAchievement);
+			if (this.achievementPopupCooldown.checkFinished())
+				this.unlockedAchievement = null;
+		}
 
 		// Countdown to game start.
 		if (!this.inputDelay.checkFinished()) {
@@ -288,6 +302,8 @@ public class GameScreen extends Screen {
 						this.score += enemyShip.getPointValue();
 						this.shipsDestroyed++;
 						this.enemyShipFormation.destroy(enemyShip);
+						showUnlockedAchievement(Core.getAchievementManager()
+								.recordEnemyDefeated());
 						recyclable.add(bullet);
 					}
 				if (this.enemyShipSpecial != null
@@ -296,12 +312,26 @@ public class GameScreen extends Screen {
 					this.score += this.enemyShipSpecial.getPointValue();
 					this.shipsDestroyed++;
 					this.enemyShipSpecial.destroy();
+					showUnlockedAchievement(Core.getAchievementManager()
+							.recordEnemyDefeated());
 					this.enemyShipSpecialExplosionCooldown.reset();
 					recyclable.add(bullet);
 				}
 			}
 		this.bullets.removeAll(recyclable);
 		BulletPool.recycle(recyclable);
+	}
+
+	/**
+	 * Displays a popup when an enemy defeat unlocks an achievement.
+	 *
+	 * @param achievement Newly unlocked achievement, if any.
+	 */
+	private void showUnlockedAchievement(final Achievement achievement) {
+		if (achievement != null) {
+			this.unlockedAchievement = achievement;
+			this.achievementPopupCooldown.reset();
+		}
 	}
 
 	/**

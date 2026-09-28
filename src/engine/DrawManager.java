@@ -113,8 +113,12 @@ public final class DrawManager {
 
 		} catch (IOException e) {
 			logger.warning("Loading failed.");
+			fontRegular = new Font(Font.MONOSPACED, Font.PLAIN, 14);
+			fontBig = new Font(Font.MONOSPACED, Font.PLAIN, 24);
 		} catch (FontFormatException e) {
 			logger.warning("Font formating failed.");
+			fontRegular = new Font(Font.MONOSPACED, Font.PLAIN, 14);
+			fontBig = new Font(Font.MONOSPACED, Font.PLAIN, 24);
 		}
 	}
 
@@ -416,6 +420,31 @@ public final class DrawManager {
 		backBufferGraphics.drawString(yesString, yesX, answerY);
 		backBufferGraphics.setColor(yesSelected ? Color.WHITE : Color.GREEN);
 		backBufferGraphics.drawString(noString, noX, answerY);
+	}
+
+	/**
+	 * Draws an achievement-unlocked popup over the game.
+	 *
+	 * @param screen Screen where the popup is drawn.
+	 * @param achievement Newly unlocked achievement.
+	 */
+	public void drawAchievementUnlocked(final Screen screen,
+			final Achievement achievement) {
+		int boxWidth = screen.getWidth() / 2;
+		int boxHeight = fontRegularMetrics.getHeight() * 3;
+		int boxX = (screen.getWidth() - boxWidth) / 2;
+		int boxY = screen.getHeight() - boxHeight
+				- fontRegularMetrics.getHeight();
+
+		backBufferGraphics.setColor(Color.BLACK);
+		backBufferGraphics.fillRect(boxX, boxY, boxWidth, boxHeight);
+		backBufferGraphics.setColor(Color.GREEN);
+		backBufferGraphics.drawRect(boxX, boxY, boxWidth, boxHeight);
+		drawCenteredRegularString(screen, "Achievement unlocked!", boxY
+				+ fontRegularMetrics.getHeight() * 3 / 2);
+		backBufferGraphics.setColor(Color.WHITE);
+		drawCenteredRegularString(screen, achievement.getName(), boxY
+				+ fontRegularMetrics.getHeight() * 5 / 2);
 	}
 
 	/**
