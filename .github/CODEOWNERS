@@ -1,0 +1,19 @@
+# Team Hello World (Main Menu) — files our team owns.
+# A pull request that changes one of these files requests a review from its owner.
+# Shared engine files (Core, DrawManager, GameScreen) are not listed: no single team owns them.
+
+# Menu framework and title screen
+/src/screen/MenuItem.java           @Aninnom
+/src/screen/TitleScreen.java        @Aninnom
+
+# Screens reached from the main menu
+/src/screen/SettingsScreen.java     @kyle891204
+/src/screen/ShopScreen.java         @oofrog
+/src/screen/AchievementsScreen.java @junh000
+/src/screen/ShipSelectScreen.java   @nuyh-99
+
+# Team documents and repository tooling
+/teams/HelloWorld.md                @eoieiie
+/teams/HelloWorld-Git-Workflow.md   @eoieiie
+/.github/                           @eoieiie
+/.gitignore                         @eoieiie
