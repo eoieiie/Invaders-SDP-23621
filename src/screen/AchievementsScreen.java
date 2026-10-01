@@ -66,12 +66,12 @@ public class AchievementsScreen extends Screen {
 				.getAchievements();
 		for (Achievement achievement : achievements) {
 			String status = achievement.isUnlocked() ? "UNLOCKED" : "LOCKED";
-			this.drawManager.drawCenteredRegularString(this,
-					achievement.getName() + " - " + status, this.height / 2);
-			this.drawManager.drawCenteredRegularString(this,
-					achievement.getDescription(),
-							this.height / 2 + this.height / 10);
+			this.drawManager.drawMenuRow(this,
+					achievement.getName() + " - " + status, this.height / 2, false);
+			this.drawManager.drawMenuRow(this, achievement.getDescription(),
+					this.height / 2 + this.height / 10, false);
 		}
+		this.drawManager.drawKeyHints(this, "esc back");
 
 		this.drawManager.completeDrawing(this);
 	}
