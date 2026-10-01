@@ -694,8 +694,10 @@ public final class DrawManager {
 			drawCenteredBigString(screen, "GO!", screen.getHeight() / 2
 					+ fontBigMetrics.getHeight() / 3);
 	}
+
 	/**
-	 * Draws centered text for the settings screen.
+	 * Draws a centered row of text in the menu colours: green when
+	 * selected, white otherwise.
 	 *
 	 * @param screen
 	 *            Screen to draw on.
@@ -704,13 +706,37 @@ public final class DrawManager {
 	 * @param height
 	 *            Height of the drawing.
 	 * @param selected
-	 *            Whether the text is currently selected.
+	 *            Whether the row is currently selected.
 	 */
-	public void drawMenuRow(final Screen screen,
-								 final String string, final int height,
-								 final boolean selected) {
-		backBufferGraphics.setColor(
-				selected ? Color.GREEN : Color.WHITE);
+	public void drawMenuRow(final Screen screen, final String string,
+			final int height, final boolean selected) {
+		drawMenuRow(screen, string, height, selected, true);
+	}
+
+	/**
+	 * Draws a centered row of text in the menu colours: green when
+	 * selected, dark grey when disabled, white otherwise.
+	 *
+	 * @param screen
+	 *            Screen to draw on.
+	 * @param string
+	 *            Text to draw.
+	 * @param height
+	 *            Height of the drawing.
+	 * @param selected
+	 *            Whether the row is currently selected.
+	 * @param enabled
+	 *            Whether the row can be chosen.
+	 */
+	public void drawMenuRow(final Screen screen, final String string,
+			final int height, final boolean selected,
+			final boolean enabled) {
+		if (selected)
+			backBufferGraphics.setColor(Color.GREEN);
+		else if (!enabled)
+			backBufferGraphics.setColor(Color.DARK_GRAY);
+		else
+			backBufferGraphics.setColor(Color.WHITE);
 		drawCenteredRegularString(screen, string, height);
 	}
 }
