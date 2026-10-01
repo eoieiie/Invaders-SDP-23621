@@ -55,8 +55,8 @@ public class ShipSelectScreen extends Screen {
 		drawManager.initDrawing(this);
 
 		drawManager.drawScreenTitle(this, MenuItem.SHIP_SELECT.getTitle());
-		drawManager.drawCenteredRegularString(this,
-				"Coming soon - press ESC to return", this.height / 2);
+		drawManager.drawMenuRow(this, "Coming soon", this.height / 2, false);
+		drawManager.drawKeyHints(this, "esc back");
 
 		drawManager.completeDrawing(this);
 	}
