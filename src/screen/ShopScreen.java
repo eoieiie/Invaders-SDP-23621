@@ -52,6 +52,7 @@ public class ShopScreen extends Screen {
 	private void draw() {
 		this.drawManager.initDrawing(this);
 		this.drawManager.drawScreenTitle(this, MenuItem.SHOP.getTitle());
+		this.drawManager.drawKeyHints(this, "esc back");
 		this.drawManager.completeDrawing(this);
 	}
 }
