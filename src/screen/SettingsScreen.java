@@ -61,10 +61,10 @@ public class SettingsScreen extends Screen {
 
 		if (this.selectionCooldown.checkFinished()) {
 			if (this.inputManager.isKeyDown(KeyEvent.VK_UP)) {
-				currentMenuItem = Math.max(0, currentMenuItem - 1);
+				currentMenuItem = (currentMenuItem + 1) % 2;
 				this.selectionCooldown.reset();
 			} else if (this.inputManager.isKeyDown(KeyEvent.VK_DOWN)) {
-				currentMenuItem = Math.min(2, currentMenuItem + 1);
+				currentMenuItem = (currentMenuItem + 1) % 2;
 				this.selectionCooldown.reset();
 			}
 
