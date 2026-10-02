@@ -101,7 +101,6 @@ public class SettingsScreen extends Screen {
 		String m0 = (currentMenuItem == 0 ? "-> " : "") + bgmStr;
 		String m1 = (currentMenuItem == 1 ? "-> " : "") + sfxStr;
 		String m2 = "Key Bindings";
-		String m3 = (currentMenuItem == 2 ? "-> " : "") + "Back";
 
 		this.drawManager.drawMenuRow(this, m0, baseY,
 				currentMenuItem == 0);
@@ -119,8 +118,7 @@ public class SettingsScreen extends Screen {
 		this.drawManager.drawMenuRow(this, "- Back: ESC -",
 				baseY + SPACING * 7, false);
 
-		this.drawManager.drawMenuRow(this, m3,
-				baseY + SPACING * 9, currentMenuItem == 2);
+		this.drawManager.drawKeyHints(this, "esc back");
 
 		this.drawManager.completeDrawing(this);
 	}
