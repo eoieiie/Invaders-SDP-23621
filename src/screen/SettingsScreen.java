@@ -77,13 +77,6 @@ public class SettingsScreen extends Screen {
 				else if (currentMenuItem == 1) sfxVolume = Math.min(100, sfxVolume + 10);
 				this.selectionCooldown.reset();
 			}
-
-			if (this.inputManager.isKeyDown(KeyEvent.VK_SPACE) || this.inputManager.isKeyDown(KeyEvent.VK_ENTER)) {
-				if (currentMenuItem == 2) {
-					this.isRunning = false;
-				}
-				this.selectionCooldown.reset();
-			}
 		}
 	}
 
