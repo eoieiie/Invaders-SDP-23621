@@ -17,7 +17,7 @@ public enum MenuItem {
 	/** Starts the game. */
 	PLAY("Play", 2, true),
 	/** Ship selection screen. */
-	SHIP_SELECT("Ship select", 7, true),
+	SHIP_SELECT("Customize", 7, true),
 	/** Shop screen. */
 	SHOP("Shop", 5, true),
 	/** Achievements screen. */
