@@ -167,7 +167,7 @@ public class TitleScreen extends Screen {
 		if (this.showingExitConfirm)
 			return "arrows to choose, space/enter ok, esc cancel";
 
-		return "w+s/arrows move space/enter select, esc exit";
+		return "w+s/arrows move, space/enter select, esc exit";
 	}
 
 	/**
