@@ -1,0 +1,31 @@
+name: PR title
+
+# Checks that a pull request title follows our commit format, because the
+# title becomes the squash commit on main. See CONTRIBUTING.md.
+#   format:  type: subject   or   type(scope): subject
+#   types:   feat fix docs refactor test ci chore style
+# A wrong format fails the check. A title over 50 characters only warns.
+# Runs only in our fork, so other teams' upstream PRs are not checked.
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+jobs:
+  title:
+    if: github.repository == 'eoieiie/Invaders-SDP-23621'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check title
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          pattern='^(feat|fix|docs|refactor|test|ci|chore|style)(\([a-z0-9-]+\))?: [^ ](.*[^.])?$'
+          if [[ ! "$TITLE" =~ $pattern ]]; then
+            echo "::error title=PR title format::Expected 'type: subject' (types: feat fix docs refactor test ci chore style), no full stop at the end. Got: $TITLE"
+            exit 1
+          fi
+          if (( ${#TITLE} > 50 )); then
+            echo "::warning title=PR title length::${#TITLE} characters. Try to keep it under 50, since it becomes the commit title on main."
+          fi
+          echo "OK: $TITLE"
