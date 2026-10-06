@@ -116,7 +116,8 @@ public class TitleScreen extends Screen {
 			this.selected = this.selected.next();
 			this.selectionCooldown.reset();
 		}
-		if (inputManager.isKeyDown(KeyEvent.VK_SPACE) || inputManager.isKeyDown(KeyEvent.VK_ENTER))
+		if (inputManager.isKeyDown(KeyEvent.VK_SPACE)
+				|| inputManager.isKeyDown(KeyEvent.VK_ENTER))
 			confirm();
 
 		if (inputManager.isMousePressed()) {
@@ -140,7 +141,8 @@ public class TitleScreen extends Screen {
 			this.exitConfirmYes = !this.exitConfirmYes;
 			this.selectionCooldown.reset();
 		}
-		if (inputManager.isKeyDown(KeyEvent.VK_SPACE) || inputManager.isKeyDown(KeyEvent.VK_ENTER)) {
+		if (inputManager.isKeyDown(KeyEvent.VK_SPACE)
+				|| inputManager.isKeyDown(KeyEvent.VK_ENTER)) {
 			if (this.exitConfirmYes) {
 				this.returnCode = MenuItem.EXIT.getCode();
 				this.isRunning = false;
@@ -165,9 +167,9 @@ public class TitleScreen extends Screen {
 	 */
 	private String keyHints() {
 		if (this.showingExitConfirm)
-			return "arrows to choose, space/enter ok, esc cancel";
+			return "arrows to choose, space ok, esc cancel";
 
-		return "w+s/arrows move, space/enter select, esc exit";
+		return "w+s/arrows move, space select, esc exit";
 	}
 
 	/**
