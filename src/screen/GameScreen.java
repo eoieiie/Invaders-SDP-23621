@@ -11,6 +11,8 @@ import engine.CurrencyManager;
 import engine.GameSettings;
 import engine.GameState;
 import engine.Achievement;
+import engine.DamageDimEffect;
+import engine.GlitchEffect;
 import entity.Bullet;
 import entity.BulletPool;
 import entity.Coin;
@@ -44,6 +46,8 @@ public class GameScreen extends Screen {
 	private static final int ACHIEVEMENT_POPUP_INTERVAL = 3000;
 	/** Height of the interface separation line. */
 	private static final int SEPARATION_LINE_HEIGHT = 40;
+	/** Lives at or below this value start the glitch. */
+	private static final int LOW_HEALTH_LIVES = 1;
 	/** Coins awarded when a regular enemy's drop chance succeeds. */
 	private static final int COIN_VALUE = 1;
 	/** Coins guaranteed when the special bonus ship is destroyed. */
@@ -90,6 +94,10 @@ public class GameScreen extends Screen {
 	private boolean levelFinished;
 	/** Checks if a bonus life is received. */
 	private boolean bonusLife;
+	/** Dims the screen when the player is hit. */
+	private DamageDimEffect damageDim; 
+	/** Glitch effect for low health. */
+	private GlitchEffect glitch;
 	/** Diamonds earned this run but not yet cashed out; lost on death,
 	 * banked into DiamondManager only when the player cashes out. */
 	private int pendingDiamonds;
@@ -146,6 +154,9 @@ public class GameScreen extends Screen {
 		this.achievementPopupCooldown = Core.getCooldown(
 				ACHIEVEMENT_POPUP_INTERVAL);
 		this.bullets = new HashSet<Bullet>();
+		this.damageDim = new DamageDimEffect(800, 0.5f,
+        new java.awt.Color(150, 0, 0));  //new update dim effect
+		this.glitch = new GlitchEffect();
 		this.coins = new HashSet<Coin>();
 		this.coinDropManager = new CoinDropManager();
 
@@ -265,6 +276,8 @@ public class GameScreen extends Screen {
 		for (Bullet bullet : this.bullets)
 			drawManager.drawEntity(bullet, bullet.getPositionX(),
 					bullet.getPositionY());
+		// Damage dim (under HUD, so score/lives stay bright). AUTHORED BY: VFX TEAM (Effection)
+		drawManager.drawDamageDim(this, this.damageDim);   // ADD
 
 		for (Coin coin : this.coins)
 			drawManager.drawCoin(coin, coin.getPositionX(),
@@ -281,6 +294,11 @@ public class GameScreen extends Screen {
 			if (this.achievementPopupCooldown.checkFinished())
 				this.unlockedAchievement = null;
 		}
+
+		// Low-health glitch (covers game + HUD). AUTHORED BY: VFX TEAM (Effection)
+		this.glitch.setEnabled(this.lives > 0
+				&& this.lives <= LOW_HEALTH_LIVES && !this.levelFinished);
+		drawManager.drawGlitch(this, this.glitch);
 
 		// Countdown to game start.
 		if (!this.inputDelay.checkFinished()) {
@@ -325,6 +343,7 @@ public class GameScreen extends Screen {
 					if (!this.ship.isDestroyed()) {
 						this.ship.destroy();
 						this.lives--;
+						this.damageDim.trigger(); // <-*AUTHORED BY: VFX TEAM (Effection)
 						this.logger.info("Hit on player ship, " + this.lives
 								+ " lives remaining.");
 					}
