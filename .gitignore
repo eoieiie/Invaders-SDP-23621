@@ -184,3 +184,6 @@ out/
 
 # Local high score file written at runtime (res/scores is the tracked default)
 /scores
+
+# Local player profile written at runtime (kill counts and achievements)
+/player-profile
