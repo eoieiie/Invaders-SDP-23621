@@ -90,6 +90,9 @@ public class GameScreen extends Screen {
 	private boolean levelFinished;
 	/** Checks if a bonus life is received. */
 	private boolean bonusLife;
+	/** Diamonds earned this run but not yet cashed out; lost on death,
+	 * banked into DiamondManager only when the player cashes out. */
+	private int pendingDiamonds;
 
 	/**
 	 * Constructor, establishes the properties of the screen.
@@ -121,6 +124,7 @@ public class GameScreen extends Screen {
 			this.lives++;
 		this.bulletsShot = gameState.getBulletsShot();
 		this.shipsDestroyed = gameState.getShipsDestroyed();
+		this.pendingDiamonds = gameState.getPendingDiamonds();
 	}
 
 	/**
@@ -229,10 +233,13 @@ public class GameScreen extends Screen {
 			this.levelFinished = true;
 			this.screenFinishedCooldown.reset();
 
-			// Level cleared alive: coins still falling are collected so the
-			// last kills' drops aren't lost.
-			if (this.enemyShipFormation.isEmpty() && this.lives > 0)
+			// Level cleared alive: level N is worth N diamonds, kept pending
+			// until cashed out (see engine.DiamondManager), and coins still
+			// falling are collected so the last kills' drops aren't lost.
+			if (this.enemyShipFormation.isEmpty() && this.lives > 0) {
+				this.pendingDiamonds += this.level;
 				collectRemainingCoins();
+			}
 		}
 
 		if (this.levelFinished && this.screenFinishedCooldown.checkFinished())
@@ -464,6 +471,6 @@ public class GameScreen extends Screen {
 	 */
 	public final GameState getGameState() {
 		return new GameState(this.level, this.score, this.lives,
-				this.bulletsShot, this.shipsDestroyed);
+				this.bulletsShot, this.shipsDestroyed, this.pendingDiamonds);
 	}
 }

@@ -3,6 +3,7 @@ package screen;
 import java.awt.event.KeyEvent;
 
 import engine.CurrencyManager;
+import engine.DiamondManager;
 
 /**
  * Implements the shop screen.
@@ -54,10 +55,12 @@ public class ShopScreen extends Screen {
 	private void draw() {
 		this.drawManager.initDrawing(this);
 		this.drawManager.drawScreenTitle(this, MenuItem.SHOP.getTitle());
-		// Coin balance (GoG - Currency System). Purchases will go through
-		// CurrencyManager.trySpend() once items exist.
+		// Balances (GoG - Currency System). Purchases will go through
+		// CurrencyManager/DiamondManager.trySpend() once items exist.
 		this.drawManager.drawCoinBalance(this, CurrencyManager.getInstance()
 				.getCoins(), this.height / 4);
+		this.drawManager.drawDiamondBalance(this, DiamondManager
+				.getInstance().getDiamonds(), this.height / 4 + 25);
 		this.drawManager.drawKeyHints(this, "esc back");
 		this.drawManager.completeDrawing(this);
 	}

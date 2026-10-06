@@ -47,6 +47,8 @@ public final class FileManager {
 	private static final String PLAYER_PROFILE_FILE = "player-profile";
 	/** Name of the file the player's coin balance is persisted to. */
 	private static final String COINS_FILE = "coins";
+	/** Name of the file the player's diamond balance is persisted to. */
+	private static final String DIAMONDS_FILE = "diamonds";
 
 	/**
 	 * private constructor.
@@ -391,7 +393,27 @@ public final class FileManager {
 	}
 
 	/**
-	 * Shared implementation of loadCoins(), reusable for other balances. Never throws:
+	 * Loads the player's persisted diamond balance (GoG - Currency System).
+	 *
+	 * @return Saved diamond balance, or 0 if there is no save file yet or
+	 *         it cannot be read.
+	 */
+	public int loadDiamonds() {
+		return loadBalance(DIAMONDS_FILE, "diamond");
+	}
+
+	/**
+	 * Saves the player's diamond balance to disk (GoG - Currency System).
+	 *
+	 * @param diamonds
+	 *            Current diamond balance to persist.
+	 */
+	public void saveDiamonds(final int diamonds) {
+		saveBalance(DIAMONDS_FILE, diamonds, "diamond");
+	}
+
+	/**
+	 * Shared implementation of loadCoins() and loadDiamonds(). Never throws:
 	 * a missing or corrupt file just means starting from zero, so the game
 	 * keeps running.
 	 *
@@ -432,7 +454,7 @@ public final class FileManager {
 	}
 
 	/**
-	 * Shared implementation of saveCoins(), reusable for other balances. Writes to a
+	 * Shared implementation of saveCoins() and saveDiamonds(). Writes to a
 	 * temporary file first and then replaces the real one, so a crash in the
 	 * middle of a save can't leave an empty or half-written balance file.
 	 * Never throws: a failed save is logged and the game keeps running.

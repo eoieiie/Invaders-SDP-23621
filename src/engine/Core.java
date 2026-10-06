@@ -9,6 +9,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import screen.AchievementsScreen;
+import screen.CashOutScreen;
 import screen.GameScreen;
 import screen.HighScoreScreen;
 import screen.ScoreScreen;
@@ -155,10 +156,15 @@ public final class Core {
 							gameState.getScore(),
 							gameState.getLivesRemaining(),
 							gameState.getBulletsShot(),
-							gameState.getShipsDestroyed());
+							gameState.getShipsDestroyed(),
+							gameState.getPendingDiamonds());
+
+					gameState = offerCashOut(gameState, width, height);
 
 				} while (gameState.getLivesRemaining() > 0
 						&& gameState.getLevel() <= NUM_LEVELS);
+
+				gameState = settlePendingDiamonds(gameState);
 
 				LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
 						+ " score screen at " + FPS + " fps, with a score of "
@@ -224,6 +230,68 @@ public final class Core {
 		fileHandler.flush();
 		fileHandler.close();
 		System.exit(0);
+	}
+
+	/**
+	 * Between levels, lets the player bank pending diamonds and end the run,
+	 * or risk them on the next level (GoG - Currency System). Only shown
+	 * when there is a next level and something is at stake.
+	 *
+	 * @param gameState
+	 *            State going into the next level.
+	 * @param width
+	 *            Screen width.
+	 * @param height
+	 *            Screen height.
+	 * @return The same state if the player continues; if they cash out, a
+	 *         state past the last level with no pending diamonds, which
+	 *         ends the game loop normally.
+	 */
+	private static GameState offerCashOut(final GameState gameState,
+			final int width, final int height) {
+		boolean canContinue = gameState.getLivesRemaining() > 0
+				&& gameState.getLevel() <= NUM_LEVELS;
+		if (!canContinue || gameState.getPendingDiamonds() <= 0)
+			return gameState;
+
+		CashOutScreen cashOutScreen = new CashOutScreen(width, height, FPS,
+				gameState);
+		currentScreen = cashOutScreen;
+		LOGGER.info("Starting " + WIDTH + "x" + HEIGHT
+				+ " cash-out screen at " + FPS + " fps.");
+		frame.setScreen(currentScreen);
+		LOGGER.info("Closing cash-out screen.");
+
+		if (!cashOutScreen.didCashOut())
+			return gameState;
+		// Diamonds were banked by the screen itself.
+		return new GameState(NUM_LEVELS + 1, gameState.getScore(),
+				gameState.getLivesRemaining(), gameState.getBulletsShot(),
+				gameState.getShipsDestroyed(), 0);
+	}
+
+	/**
+	 * Settles diamonds still pending when a run ends (GoG - Currency
+	 * System). Clearing the final level banks them automatically, since
+	 * there is nothing left to risk them on; dying forfeits them.
+	 *
+	 * @param gameState
+	 *            State at the end of the run.
+	 * @return State with no pending diamonds.
+	 */
+	private static GameState settlePendingDiamonds(final GameState gameState) {
+		int pending = gameState.getPendingDiamonds();
+		if (pending <= 0)
+			return gameState;
+		if (gameState.getLivesRemaining() > 0) {
+			DiamondManager.getInstance().addDiamonds(pending);
+			LOGGER.info("Run completed, banked " + pending + " diamonds.");
+		} else {
+			LOGGER.info("Run lost, " + pending + " pending diamonds forfeited.");
+		}
+		return new GameState(gameState.getLevel(), gameState.getScore(),
+				gameState.getLivesRemaining(), gameState.getBulletsShot(),
+				gameState.getShipsDestroyed(), 0);
 	}
 
 	/**

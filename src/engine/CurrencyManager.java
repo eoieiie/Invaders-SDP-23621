@@ -7,7 +7,7 @@ package engine;
  * and the shop both go through this single instance.
  *
  * Coins are the main currency: earned from enemy drops and meant for
- * gameplay purchases.
+ * gameplay purchases. Diamonds live in {@link DiamondManager}.
  *
  * Every change to the balance is written straight to disk (via
  * {@link FileManager}) rather than only on exit, so a crash or force-quit
