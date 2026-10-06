@@ -595,14 +595,7 @@ public final class DrawManager {
 				screen.getHeight() / 2 + fontRegularMetrics.getHeight() * 10);
 	}
 
-	/**
-	 * Draws high score screen title and instructions.
-	 * 
-	 * @param screen
-	 *            Screen to draw on.
-	 */
-
-	/**
+	
 	 * Draws high scores.
 	 * 
 	 * @param screen
