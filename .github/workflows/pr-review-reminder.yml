@@ -1,0 +1,104 @@
+name: PR review reminder
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  pull-requests: write
+
+concurrency:
+  group: pr-review-reminder
+  cancel-in-progress: false
+
+jobs:
+  remind:
+    if: github.repository == 'eoieiie/Invaders-SDP-23621'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    env:
+      WAIT_HOURS: "6"
+      SEND_REMINDERS: ${{ vars.PR_REMINDER_ENABLED }}
+
+    steps:
+      - name: Check pending review requests
+        uses: actions/github-script@v9
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            if (owner + "/" + repo !== "eoieiie/Invaders-SDP-23621") return;
+
+            const hours = Number(process.env.WAIT_HOURS);
+            if (!Number.isFinite(hours) || hours <= 0) {
+              throw new Error("WAIT_HOURS must be a positive number.");
+            }
+            const send = process.env.SEND_REMINDERS === "true";
+            const cutoff = Date.now() - hours * 60 * 60 * 1000;
+            const pulls = await github.paginate(github.rest.pulls.list, {
+              owner, repo, state: "open", base: "main", per_page: 100
+            });
+
+            for (const item of pulls) {
+              if (item.draft) continue;
+              const timeline = await github.paginate(
+                github.rest.issues.listEventsForTimeline,
+                { owner, repo, issue_number: item.number, per_page: 100 }
+              );
+              const { data: pr } = await github.rest.pulls.get({
+                owner, repo, pull_number: item.number
+              });
+              if (pr.state !== "open" || pr.draft) continue;
+
+              const readyAt = timeline.reduce((latest, event) => {
+                if (!["ready_for_review", "reopened"].includes(event.event)) return latest;
+                return Math.max(latest, Date.parse(event.created_at) || 0);
+              }, 0);
+
+              const due = [];
+              for (const user of pr.requested_reviewers || []) {
+                if (user.type !== "User") continue;
+                const request = timeline
+                  .filter(event => event.event === "review_requested" &&
+                    event.requested_reviewer?.login === user.login)
+                  .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))[0];
+                if (!request) continue;
+
+                const since = Math.max(Date.parse(request.created_at), readyAt);
+                if (!Number.isFinite(since) || since > cutoff) continue;
+
+                const marker = "<!-- team-review-reminder:" + request.id + " -->";
+                const alreadySent = timeline.some(event =>
+                  event.event === "commented" &&
+                  (event.user?.login || event.actor?.login) === "github-actions[bot]" &&
+                  event.body?.includes(marker)
+                );
+                if (!alreadySent) due.push({ login: user.login, marker });
+              }
+
+              if (!due.length) {
+                core.info("PR #" + pr.number + ": no reminder due.");
+                continue;
+              }
+
+              const body = [
+                due.map(user => "@" + user.login).join(" "),
+                "",
+                "Your review request has been pending for at least " + hours + " hours.",
+                "Please review this pull request when available.",
+                "",
+                ...due.map(user => user.marker)
+              ].join("\n");
+
+              if (!send) {
+                core.info("[Dry run] PR #" + pr.number + "\n" + body);
+                continue;
+              }
+
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: pr.number, body
+              });
+              core.info("Posted a reminder on PR #" + pr.number + ".");
+            }
