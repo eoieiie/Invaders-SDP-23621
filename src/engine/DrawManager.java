@@ -14,6 +14,7 @@ import java.util.logging.Logger;
 
 import screen.MenuItem;
 import screen.Screen;
+import entity.Coin;
 import entity.Entity;
 import entity.Ship;
 
@@ -206,6 +207,69 @@ public final class DrawManager {
 				if (image[i][j])
 					backBufferGraphics.drawRect(positionX + i * 2, positionY
 							+ j * 2, 1, 1);
+	}
+
+	/**
+	 * Draws a dropped coin as a filled circle (GoG - Currency System).
+	 * Coins have no entry in the shared sprite file, so they are drawn
+	 * here instead of through drawEntity().
+	 *
+	 * @param coin
+	 *            Coin to be drawn.
+	 * @param positionX
+	 *            Coordinates for the left side of the coin.
+	 * @param positionY
+	 *            Coordinates for the upper side of the coin.
+	 */
+	public void drawCoin(final Coin coin, final int positionX,
+			final int positionY) {
+		backBufferGraphics.setColor(coin.getColor());
+		backBufferGraphics.fillOval(positionX, positionY, coin.getWidth(),
+				coin.getHeight());
+	}
+
+	/**
+	 * Draws a coin balance as a small coin icon followed by the amount,
+	 * centered along the top bar of the screen (GoG - Currency System).
+	 * Used by the in-game HUD and the shop.
+	 *
+	 * @param screen
+	 *            Screen to draw on.
+	 * @param coins
+	 *            Coin balance to display.
+	 */
+	public void drawCoinBalance(final Screen screen, final int coins) {
+		drawCoinBalance(screen, coins, 25);
+	}
+
+	/**
+	 * Draws a coin balance as a small coin icon followed by the amount,
+	 * centered horizontally at the given baseline (GoG - Currency System).
+	 *
+	 * @param screen
+	 *            Screen to draw on.
+	 * @param coins
+	 *            Coin balance to display.
+	 * @param positionY
+	 *            Baseline Y coordinate of the text.
+	 */
+	public void drawCoinBalance(final Screen screen, final int coins,
+			final int positionY) {
+		final int iconSize = 14;
+		final int iconTextGap = 6;
+
+		backBufferGraphics.setFont(fontRegular);
+		String balanceString = Integer.toString(coins);
+		int totalWidth = iconSize + iconTextGap
+				+ fontRegularMetrics.stringWidth(balanceString);
+		int startX = (screen.getWidth() - totalWidth) / 2;
+
+		backBufferGraphics.setColor(Color.YELLOW);
+		backBufferGraphics.fillOval(startX, positionY - iconSize + 1,
+				iconSize, iconSize);
+		backBufferGraphics.setColor(Color.WHITE);
+		backBufferGraphics.drawString(balanceString, startX + iconSize
+				+ iconTextGap, positionY);
 	}
 
 	/**

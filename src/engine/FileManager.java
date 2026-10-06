@@ -15,6 +15,9 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.URLDecoder;
 import java.nio.charset.Charset;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -42,6 +45,8 @@ public final class FileManager {
 	private static final int MAX_SCORES = 7;
 	/** Name of the file containing persistent player progress. */
 	private static final String PLAYER_PROFILE_FILE = "player-profile";
+	/** Name of the file the player's coin balance is persisted to. */
+	private static final String COINS_FILE = "coins";
 
 	/**
 	 * private constructor.
@@ -362,5 +367,131 @@ public final class FileManager {
 			joinedIds.append(achievementId);
 		}
 		return joinedIds.toString();
+	}
+
+	/**
+	 * Loads the player's persisted coin balance (GoG - Currency System).
+	 * Kept in its own file so it never interferes with the player profile.
+	 *
+	 * @return Saved coin balance, or 0 if there is no save file yet or it
+	 *         cannot be read.
+	 */
+	public int loadCoins() {
+		return loadBalance(COINS_FILE, "coin");
+	}
+
+	/**
+	 * Saves the player's coin balance to disk (GoG - Currency System).
+	 *
+	 * @param coins
+	 *            Current coin balance to persist.
+	 */
+	public void saveCoins(final int coins) {
+		saveBalance(COINS_FILE, coins, "coin");
+	}
+
+	/**
+	 * Shared implementation of loadCoins(), reusable for other balances. Never throws:
+	 * a missing or corrupt file just means starting from zero, so the game
+	 * keeps running.
+	 *
+	 * @param fileName
+	 *            Name of the save file, next to the running jar.
+	 * @param label
+	 *            Short currency label, used only for log messages.
+	 * @return Saved balance, never negative.
+	 */
+	private int loadBalance(final String fileName, final String label) {
+		BufferedReader bufferedReader = null;
+		try {
+			File balanceFile = getSaveFile(fileName);
+			if (!balanceFile.exists()) {
+				logger.info("No " + label + " balance saved yet, starting from 0.");
+				return 0;
+			}
+			bufferedReader = new BufferedReader(new InputStreamReader(
+					new FileInputStream(balanceFile), Charset.forName("UTF-8")));
+			String line = bufferedReader.readLine();
+			int balance = line == null ? 0 : Integer.parseInt(line.trim());
+			logger.info("Loading user " + label + " balance.");
+			return Math.max(0, balance);
+		} catch (NumberFormatException e) {
+			logger.warning("The " + label + " balance file is corrupt, starting from 0.");
+			return 0;
+		} catch (IOException e) {
+			logger.warning("Couldn't load " + label + " balance, starting from 0.");
+			return 0;
+		} finally {
+			try {
+				if (bufferedReader != null)
+					bufferedReader.close();
+			} catch (IOException e) {
+				// Nothing else to do if closing fails.
+			}
+		}
+	}
+
+	/**
+	 * Shared implementation of saveCoins(), reusable for other balances. Writes to a
+	 * temporary file first and then replaces the real one, so a crash in the
+	 * middle of a save can't leave an empty or half-written balance file.
+	 * Never throws: a failed save is logged and the game keeps running.
+	 *
+	 * @param fileName
+	 *            Name of the save file, next to the running jar.
+	 * @param balance
+	 *            Balance to persist.
+	 * @param label
+	 *            Short currency label, used only for log messages.
+	 */
+	private void saveBalance(final String fileName, final int balance,
+			final String label) {
+		BufferedWriter bufferedWriter = null;
+		try {
+			File balanceFile = getSaveFile(fileName);
+			File tempFile = getSaveFile(fileName + ".tmp");
+			bufferedWriter = new BufferedWriter(new OutputStreamWriter(
+					new FileOutputStream(tempFile), Charset.forName("UTF-8")));
+			bufferedWriter.write(Integer.toString(balance));
+			bufferedWriter.newLine();
+			bufferedWriter.close();
+			bufferedWriter = null;
+
+			try {
+				Files.move(tempFile.toPath(), balanceFile.toPath(),
+						StandardCopyOption.REPLACE_EXISTING,
+						StandardCopyOption.ATOMIC_MOVE);
+			} catch (AtomicMoveNotSupportedException e) {
+				Files.move(tempFile.toPath(), balanceFile.toPath(),
+						StandardCopyOption.REPLACE_EXISTING);
+			}
+		} catch (IOException e) {
+			logger.warning("Couldn't save " + label + " balance: "
+					+ e.getMessage());
+		} finally {
+			try {
+				if (bufferedWriter != null)
+					bufferedWriter.close();
+			} catch (IOException e) {
+				// Nothing else to do if closing fails.
+			}
+		}
+	}
+
+	/**
+	 * Returns a save file located next to the running jar, the same place
+	 * the high scores and player profile are kept.
+	 *
+	 * @param fileName
+	 *            Name of the file.
+	 * @return The file.
+	 * @throws IOException
+	 *             In case the application directory cannot be decoded.
+	 */
+	private File getSaveFile(final String fileName) throws IOException {
+		String jarPath = FileManager.class.getProtectionDomain()
+				.getCodeSource().getLocation().getPath();
+		jarPath = URLDecoder.decode(jarPath, "UTF-8");
+		return new File(new File(jarPath).getParent(), fileName);
 	}
 }

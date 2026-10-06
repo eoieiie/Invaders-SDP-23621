@@ -2,6 +2,8 @@ package screen;
 
 import java.awt.event.KeyEvent;
 
+import engine.CurrencyManager;
+
 /**
  * Implements the shop screen.
  * Placeholder only: currency, items and purchases are added by the teams that own them.
@@ -52,6 +54,10 @@ public class ShopScreen extends Screen {
 	private void draw() {
 		this.drawManager.initDrawing(this);
 		this.drawManager.drawScreenTitle(this, MenuItem.SHOP.getTitle());
+		// Coin balance (GoG - Currency System). Purchases will go through
+		// CurrencyManager.trySpend() once items exist.
+		this.drawManager.drawCoinBalance(this, CurrencyManager.getInstance()
+				.getCoins(), this.height / 4);
 		this.drawManager.drawKeyHints(this, "esc back");
 		this.drawManager.completeDrawing(this);
 	}
