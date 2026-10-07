@@ -61,10 +61,10 @@ public class SettingsScreen extends Screen {
 
 		if (this.selectionCooldown.checkFinished()) {
 			if (this.inputManager.isKeyDown(KeyEvent.VK_UP)) {
-				currentMenuItem = Math.max(0, currentMenuItem - 1);
+				currentMenuItem = (currentMenuItem + 1) % 2;
 				this.selectionCooldown.reset();
 			} else if (this.inputManager.isKeyDown(KeyEvent.VK_DOWN)) {
-				currentMenuItem = Math.min(2, currentMenuItem + 1);
+				currentMenuItem = (currentMenuItem + 1) % 2;
 				this.selectionCooldown.reset();
 			}
 
@@ -75,13 +75,6 @@ public class SettingsScreen extends Screen {
 			} else if (this.inputManager.isKeyDown(KeyEvent.VK_RIGHT)) {
 				if (currentMenuItem == 0) bgmVolume = Math.min(100, bgmVolume + 10);
 				else if (currentMenuItem == 1) sfxVolume = Math.min(100, sfxVolume + 10);
-				this.selectionCooldown.reset();
-			}
-
-			if (this.inputManager.isKeyDown(KeyEvent.VK_SPACE) || this.inputManager.isKeyDown(KeyEvent.VK_ENTER)) {
-				if (currentMenuItem == 2) {
-					this.isRunning = false;
-				}
 				this.selectionCooldown.reset();
 			}
 		}
@@ -101,7 +94,6 @@ public class SettingsScreen extends Screen {
 		String m0 = (currentMenuItem == 0 ? "-> " : "") + bgmStr;
 		String m1 = (currentMenuItem == 1 ? "-> " : "") + sfxStr;
 		String m2 = "Key Bindings";
-		String m3 = (currentMenuItem == 2 ? "-> " : "") + "Back";
 
 		this.drawManager.drawMenuRow(this, m0, baseY,
 				currentMenuItem == 0);
@@ -119,8 +111,7 @@ public class SettingsScreen extends Screen {
 		this.drawManager.drawMenuRow(this, "- Back: ESC -",
 				baseY + SPACING * 7, false);
 
-		this.drawManager.drawMenuRow(this, m3,
-				baseY + SPACING * 9, currentMenuItem == 2);
+		this.drawManager.drawKeyHints(this, "arrows adjust, esc back");
 
 		this.drawManager.completeDrawing(this);
 	}
