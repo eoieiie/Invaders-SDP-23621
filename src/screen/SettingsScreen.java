@@ -111,7 +111,7 @@ public class SettingsScreen extends Screen {
 		this.drawManager.drawMenuRow(this, "- Back: ESC -",
 				baseY + SPACING * 7, false);
 
-		this.drawManager.drawKeyHints(this, "esc back");
+		this.drawManager.drawKeyHints(this, "arrows adjust, esc back");
 
 		this.drawManager.completeDrawing(this);
 	}
