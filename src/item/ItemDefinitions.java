@@ -9,25 +9,30 @@ import java.util.Map;
 import item.ItemAPI.*;
 
 /**
- * 종류의 데이터 사전. 게임 상태/가격/재고/드랍 확률은 저장하지 않는다.
- * 이 클래스는 package-private이다. 다른 팀은 ItemAPI의 조회 함수만 사용한다.
- * ItemInfo 자체를 불변 정의로 재사용한다. 별도 Definition/Repository 파일을 만들지 않는다.
+ * Data dictionary of item kinds. Does not store game state, prices, stock or drop rates.
+ * This class is package-private. Other teams use only the lookup functions in ItemAPI.
+ * ItemInfo itself is reused as the immutable definition. No separate Definition/Repository files.
  */
 class ItemDefinitions {
     private final Map<String, ItemInfo> itemsById;
     private final List<ItemInfo> items;
 
-    ItemDefinitions() {
+    /** Builds the catalog from the values in the config file (res/item-balance.properties). */
+    ItemDefinitions() { this(ItemBalance.load()); }
+
+    ItemDefinitions(ItemBalance balance) {
+        ItemAPI.required(balance, "balance");
         Map<String, ItemInfo> definitions = new LinkedHashMap<String, ItemInfo>();
 
         ItemInfo life = new ItemInfo(
             "life",
             "Life",
-            "Adds one life, or awards 500 points at the life cap.",
+            "Adds one life, or awards " + balance.lifeCapBonusScore + " points at the life cap.",
             "life",
             ActivationMode.ON_PICKUP,
             EffectKind.LIFE,
             DurationKind.INSTANT,
+            null,
             null,
             null,
             null,
@@ -38,13 +43,15 @@ class ItemDefinitions {
         ItemInfo shield = new ItemInfo(
             "shield",
             "Shield",
-            "Blocks one incoming hit for up to 10 seconds.",
+            "Blocks " + balance.shieldCharges + " incoming hit(s) for up to "
+                + seconds(balance.shieldDurationMillis) + " seconds.",
             "shield",
             ActivationMode.MANUAL,
             EffectKind.SHIELD,
             DurationKind.TIMED,
-            10_000L,
-            1,
+            balance.shieldDurationMillis,
+            balance.shieldCharges,
+            null,
             null,
             EnumSet.of(GrantTiming.NOW)
         );
@@ -53,14 +60,16 @@ class ItemDefinitions {
         ItemInfo rapidFire = new ItemInfo(
             "rapid_fire",
             "Rapid Fire",
-            "Increases firing rate by 50% until the level ends.",
+            "Fires faster for the rest of the run. Stacks up to " + balance.rapidFireMaxStacks
+                + " times with smaller gains each time.",
             "rapid_fire",
             ActivationMode.ON_PICKUP,
             EffectKind.RAPID_FIRE,
-            DurationKind.UNTIL_LEVEL_END,
+            DurationKind.UNTIL_RUN_END,
             null,
             null,
-            1.5,
+            balance.rapidFireBonus,
+            balance.rapidFireMaxStacks,
             EnumSet.of(GrantTiming.NOW, GrantTiming.NEXT_LEVEL)
         );
         definitions.put(rapidFire.itemId, rapidFire);
@@ -68,14 +77,16 @@ class ItemDefinitions {
         ItemInfo bulletSpeed = new ItemInfo(
             "bullet_speed",
             "Bullet Speed",
-            "Increases projectile speed by 10% until the level ends.",
+            "Bullets fly faster for the rest of the run. Stacks up to " + balance.bulletSpeedMaxStacks
+                + " times with smaller gains each time.",
             "bullet_speed",
             ActivationMode.ON_PICKUP,
             EffectKind.BULLET_SPEED,
-            DurationKind.UNTIL_LEVEL_END,
+            DurationKind.UNTIL_RUN_END,
             null,
             null,
-            1.10,
+            balance.bulletSpeedBonus,
+            balance.bulletSpeedMaxStacks,
             EnumSet.of(GrantTiming.NOW, GrantTiming.NEXT_LEVEL)
         );
         definitions.put(bulletSpeed.itemId, bulletSpeed);
@@ -83,12 +94,13 @@ class ItemDefinitions {
         ItemInfo freeze = new ItemInfo(
             "freeze",
             "Freeze",
-            "Stops all enemy movement for 5 seconds.",
+            "Stops all enemy movement for " + seconds(balance.freezeDurationMillis) + " seconds.",
             "freeze",
             ActivationMode.MANUAL,
             EffectKind.FREEZE,
             DurationKind.TIMED,
-            5_000L,
+            balance.freezeDurationMillis,
+            null,
             null,
             null,
             EnumSet.of(GrantTiming.NOW)
@@ -101,24 +113,24 @@ class ItemDefinitions {
     }
 
     /**
-     * 등록된 ID를 조회한다. 없는 유효 ID만 null이다. 목록은 한 판 동안 불변이다.
-     * 기본 등록: life(즉시 목숨1), shield(수동 10초/1회), rapid_fire(즉시 1.5배/스테이지),
-     * bullet_speed(즉시 1.10배/스테이지), freeze(수동 5초 이동차단).
-     * 모두 NOW 지원. rapid_fire/bullet_speed만 NEXT_LEVEL 지원. 각 수치는 기획 합의와 대조한다.
+     * Looks up a registered ID. Returns null only for a valid but unknown ID. The list is immutable for a run.
+     * Registered by default: life (instant, +1 life), shield (manual, time/charges), rapid_fire (on pickup, stacks for the run),
+     * bullet_speed (on pickup, stacks for the run), freeze (manual, blocks enemy movement for a time).
+     * All support NOW. Only rapid_fire/bullet_speed support NEXT_LEVEL. Values come from ItemBalance (config file).
      */
     ItemInfo find(String itemId) { return itemsById.get(itemId); }
 
-    /** 등록 순서의 불변 목록. 상점의 판매 목록이 아니다. find와 같은 정의를 사용한다. */
+    /** Immutable list in registration order. Not the shop's sale list. Uses the same definitions as find. */
     List<ItemInfo> all() { return items; }
 
     /**
-     * 상태 변경 없이 모든 정의/규칙을 검증한다.
-     * 두 DropSource 규칙, 존재하는 ID, 양의 유한 가중치 합(p>0일 때), 설정 영역을 검증한다.
-     * 정의의 kind/duration/수치 조합도 확인한다. 동일 kind 중복 효과 정책은 REJECT다.
-     * NEXT_LEVEL은 ON_PICKUP + UNTIL_LEVEL_END인 RAPID_FIRE/BULLET_SPEED만 가능하다.
-     * LIFE는 INSTANT, SHIELD/FREEZE는 TIMED, 두 배율 효과는 UNTIL_LEVEL_END로 고정한다.
-     * SHIELD는 durationMillis/charges, FREEZE는 durationMillis, 두 배율은 magnitude가 필수다.
-     * 지원하지 않는 값 조합은 예외. 잘못된 설정을 자동 보정하거나 게임을 시작하지 않는다.
+     * Validates all definitions/rules without changing state.
+     * Checks both DropSource rules, existing IDs, a positive finite weight sum (when p>0), and the configured area.
+     * Also checks each definition's kind/duration/value combination. Duplicate effects of the same kind are REJECTed, except SHIELD, which restarts.
+     * NEXT_LEVEL is allowed only for RAPID_FIRE/BULLET_SPEED with ON_PICKUP + UNTIL_RUN_END.
+     * LIFE is fixed to INSTANT, SHIELD/FREEZE to TIMED, and the two stacking effects to UNTIL_RUN_END.
+     * SHIELD requires durationMillis/charges, FREEZE requires durationMillis, the two stacking effects require magnitude/maxStacks.
+     * Unsupported combinations throw. Invalid settings are never auto-corrected and the game does not start with them.
      */
     void validate(LevelRules rules) {
         ItemAPI.required(rules, "rules");
@@ -158,26 +170,27 @@ class ItemDefinitions {
                     requireDefinition(item, item.activationMode == ActivationMode.ON_PICKUP
                         && item.durationKind == DurationKind.INSTANT
                         && item.durationMillis == null && item.charges == null && item.magnitude == null
+                        && item.maxStacks == null
                         && item.supportedGrantTimings.equals(EnumSet.of(GrantTiming.NOW)));
                     break;
                 case SHIELD:
                     requireDefinition(item, item.activationMode == ActivationMode.MANUAL
                         && item.durationKind == DurationKind.TIMED
-                        && Long.valueOf(10_000L).equals(item.durationMillis)
-                        && Integer.valueOf(1).equals(item.charges) && item.magnitude == null
+                        && item.durationMillis != null
+                        && item.charges != null && item.magnitude == null && item.maxStacks == null
                         && item.supportedGrantTimings.equals(EnumSet.of(GrantTiming.NOW)));
                     break;
                 case RAPID_FIRE:
-                    requireDefinition(item, isLevelMultiplier(item, 1.5));
+                    requireDefinition(item, isRunStack(item));
                     break;
                 case BULLET_SPEED:
-                    requireDefinition(item, isLevelMultiplier(item, 1.10));
+                    requireDefinition(item, isRunStack(item));
                     break;
                 case FREEZE:
                     requireDefinition(item, item.activationMode == ActivationMode.MANUAL
                         && item.durationKind == DurationKind.TIMED
-                        && Long.valueOf(5_000L).equals(item.durationMillis)
-                        && item.charges == null && item.magnitude == null
+                        && item.durationMillis != null
+                        && item.charges == null && item.magnitude == null && item.maxStacks == null
                         && item.supportedGrantTimings.equals(EnumSet.of(GrantTiming.NOW)));
                     break;
                 default:
@@ -188,13 +201,17 @@ class ItemDefinitions {
         requireValid(kinds.size() == EffectKind.values().length, "missing effect definition");
     }
 
-    private boolean isLevelMultiplier(ItemInfo item, double magnitude) {
+    private boolean isRunStack(ItemInfo item) {
         return item.activationMode == ActivationMode.ON_PICKUP
-            && item.durationKind == DurationKind.UNTIL_LEVEL_END
+            && item.durationKind == DurationKind.UNTIL_RUN_END
             && item.durationMillis == null && item.charges == null
-            && Double.valueOf(magnitude).equals(item.magnitude)
+            && item.magnitude != null && item.maxStacks != null
             && item.supportedGrantTimings.equals(
                 EnumSet.of(GrantTiming.NOW, GrantTiming.NEXT_LEVEL));
+    }
+
+    private static String seconds(long millis) {
+        return millis % 1000 == 0 ? Long.toString(millis / 1000) : Double.toString(millis / 1000.0);
     }
 
     private void requireDefinition(ItemInfo item, boolean condition) {

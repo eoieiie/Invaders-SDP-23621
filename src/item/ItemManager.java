@@ -6,16 +6,19 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.function.Consumer;
 
 import item.ItemAPI.*;
 
 /**
- * 내부 조정자: 이 파일의 조정 로직은 작성되어 있다.
- * 드랍/인벤토리/효과의 원본 상태는 각각 담당 파일이 소유한다.
- * 이 파일은 단계, 현재 연결, 외부 지급 결과, 예약, 사후 이벤트만 소유한다.
- * 네 협력 파일의 STUB을 구현하기 전에는 전체 기능을 실행할 수 없다.
+ * Item system coordinator, created once per run by game setup code.
+ * The game loop calls beginLevel/update/endLevel; general features are offered through ItemAPI.
+ * The same instance is kept across stages; a new run creates a new instance.
+ * Call only from the thread that owns game state. Re-entrant callbacks are not allowed.
+ * Drop/inventory/effect source state is owned by their own files.
+ * This file owns only the phase, current connection, external grant results, reservations and events.
  */
-final class ItemManager {
+public final class ItemManager {
     private final ItemDefinitions definitions;
     private final ItemDropSystem drops;
     private final ItemInventory inventory;
@@ -28,16 +31,24 @@ final class ItemManager {
     private LevelRules rules;
     private LifePort lifePort;
     private PlayerSnapshot player;
+    /** Told about every event as it happens (logging/UI). The event queue is unaffected. */
+    private Consumer<ItemEvent> listener;
 
-    ItemManager(int capacity, Random random) {
+    /** Sets the run's inventory capacity and drop random source. Does not start a stage yet. */
+    public ItemManager(int capacity, Random random) {
+        this(capacity, ItemBalance.load(), random);
+    }
+
+    /** Assembles from already loaded balance values. ItemSystem passes the values it read once at run start. */
+    ItemManager(int capacity, ItemBalance balance, Random random) {
         if (capacity <= 0) throw new IllegalArgumentException("capacity");
-        definitions = new ItemDefinitions();
+        definitions = new ItemDefinitions(ItemAPI.required(balance, "balance"));
         drops = new ItemDropSystem(definitions, ItemAPI.required(random, "random"));
         inventory = new ItemInventory(capacity);
         effects = new ItemEffectSystem();
     }
 
-    /** 패키지 내부 테스트 조립용. 외부 팀의 API가 아니다. 네 객체는 이 매니저 전용이어야 한다. */
+    /** For in-package test assembly. Not an API for other teams. The four objects must belong to this manager only. */
     ItemManager(ItemDefinitions definitions, ItemDropSystem drops,
                 ItemInventory inventory, ItemEffectSystem effects) {
         this.definitions = ItemAPI.required(definitions, "definitions");
@@ -64,7 +75,7 @@ final class ItemManager {
         ItemAPI.required(request, "request");
         GrantResult previous = receipts.get(request.requestId);
         if (previous != null) {
-            // 사용/효과 만료/스테이지 전환 후에도 최초 결과를 그대로 반환한다.
+            // Returns the original result even after use, effect expiry or stage change.
             return previous.request.sameContent(request) ? previous
                 : GrantResult.rejected(request, GrantFailure.REQUEST_ID_CONFLICT, levelId());
         }
@@ -99,19 +110,22 @@ final class ItemManager {
         if (request.timing == GrantTiming.NEXT_LEVEL) {
             if (!supportsNextLevel(item)) return GrantFailure.TIMING_NOT_SUPPORTED;
             if (active) return GrantFailure.INVALID_PHASE;
-            return pending.containsKey(item.effectKind) ? GrantFailure.EFFECT_ALREADY_QUEUED : null;
+            if (pending.containsKey(item.effectKind)) return GrantFailure.EFFECT_ALREADY_QUEUED;
+            // Run-wide stacks survive between levels; a full stack would fail when the next level starts.
+            return effects.check(item, null);
         }
         if (item.activationMode == ActivationMode.MANUAL)
             return inventory.firstEmptySlot() < 0 ? GrantFailure.INVENTORY_FULL : null;
         if (!active) return GrantFailure.LEVEL_NOT_ACTIVE;
-        return effects.check(item, lifePort); // LIFE라면 읽기 전용 canAddLife만 사용해야 한다.
+        return effects.check(item, lifePort); // For LIFE, only the read-only canAddLife may be used.
     }
 
-    void beginLevel(LevelRules newRules, LifePort newPort) {
+    /** Called by the game loop when a stage starts. Validates rules, then applies reserved effects. */
+    public void beginLevel(LevelRules newRules, LifePort newPort) {
         if (active) throw new IllegalStateException("level is already active");
         ItemAPI.required(newRules, "rules"); ItemAPI.required(newPort, "lifePort");
-        definitions.validate(newRules); // 전체 규칙/카탈로그를 상태 변경 전에 검증한다.
-        // INACTIVE의 효과 목록은 비어 있어야 한다. 예약은 포트 없는 스테이지 효과로 제한한다.
+        definitions.validate(newRules); // Validates all rules/catalog before changing state.
+        // The effect list must be empty while INACTIVE. Reservations are limited to port-free stage effects.
         for (PendingGrantView reservation : pending.values()) {
             if (!supportsNextLevel(reservation.item)) throw new IllegalStateException("invalid pending definition");
             if (effects.check(reservation.item, newPort) != null)
@@ -134,16 +148,17 @@ final class ItemManager {
     void onEnemyDefeated(DropSource source, double x, double y) {
         requireActive(); ItemAPI.required(source, "source");
         ItemAPI.finite(x, "x"); ItemAPI.finite(y, "y");
-        DropView spawned = drops.spawn(source, x, y);
+        DropView spawned = drops.spawn(source, x, y, effects.stacksByItemId());
         if (spawned != null)
             emit(EventType.ITEM_SPAWNED, spawned.item.itemId, spawned.dropId,
                 null, null, null, null, null, null, spawned.bounds);
     }
 
-    void update(long delta, PlayerSnapshot currentPlayer) {
+    /** The game loop passes the elapsed game time (ms) and the current player state. */
+    public void update(long delta, PlayerSnapshot currentPlayer) {
         requireActive(); ItemAPI.required(currentPlayer, "player");
         if (delta < 0) throw new IllegalArgumentException("negative delta");
-        // 지난 시간의 만료를 먼저 처리한 뒤 이번 갱신에 얻는 효과를 적용한다.
+        // Handles expiry for the elapsed time first, then applies effects gained in this update.
         for (ItemEffectSystem.Ended ended : effects.advance(delta)) emitEnded(ended);
         player = currentPlayer;
         ItemDropSystem.Frame frame = drops.advance(delta, currentPlayer);
@@ -154,7 +169,7 @@ final class ItemManager {
         for (DropView contact : frame.contacts) {
             Acquisition acquired = acquire(contact.item);
             if (acquired.failure != null) continue;
-            // 같은 직렬 호출 동안 접촉 개체가 유지됨을 DropSystem 계약이 보장한다.
+            // The DropSystem contract guarantees contacts stay valid during the same serial call.
             drops.completePickup(contact.dropId);
             emit(EventType.ITEM_COLLECTED, contact.item.itemId, contact.dropId,
                 effectId(acquired.effect), acquired.slot, null, null, null, null, contact.bounds);
@@ -172,7 +187,7 @@ final class ItemManager {
         if (applied.failure != null)
             return applied.failure == GrantFailure.EFFECT_ALREADY_ACTIVE
                 ? UseResult.EFFECT_ALREADY_ACTIVE : UseResult.EFFECT_REJECTED;
-        inventory.consume(slot); // 적용 성공 전에는 절대 슬롯을 비우지 않는다.
+        inventory.consume(slot); // Never empty the slot before the effect is applied.
         emit(EventType.ITEM_USED, item.itemId, null, effectId(applied.effect), slot,
             null, null, null, null, null);
         emitStarted(applied.effect, null);
@@ -205,16 +220,17 @@ final class ItemManager {
         return result;
     }
 
-    void endLevel() {
+    /** Clears the stage connection, drops and stage effects. Inventory, grant records and run-wide stacking effects stay for the run. */
+    public void endLevel() {
         if (!active) return;
         List<ItemEffectSystem.Ended> ended = effects.clear();
         drops.clear();
-        for (ItemEffectSystem.Ended value : ended) emitEnded(value); // 종료될 levelId를 유지한다.
+        for (ItemEffectSystem.Ended value : ended) emitEnded(value); // Keeps the levelId being ended.
         active = false; rules = null; lifePort = null; player = null;
-        // 인벤토리/미적용 예약/지급 결과/ID/대기 이벤트는 한 판 동안 보존한다.
+        // Inventory, pending reservations, grant results, IDs and queued events are kept for the run.
     }
 
-    /** 바닥 획득과 NOW 직접 지급이 공유한다. 바닥 제거/영수 기록/원인 이벤트는 호출자가 처리한다. */
+    /** Shared by floor pickup and direct NOW grants. The caller handles drop removal, receipts and cause events. */
     private Acquisition acquire(ItemInfo item) {
         if (item.activationMode == ActivationMode.MANUAL) {
             int slot = inventory.firstEmptySlot();
@@ -242,9 +258,11 @@ final class ItemManager {
     private static boolean supportsNextLevel(ItemInfo item) {
         return item.supportedGrantTimings.contains(GrantTiming.NEXT_LEVEL)
             && item.activationMode == ActivationMode.ON_PICKUP
-            && item.durationKind == DurationKind.UNTIL_LEVEL_END
+            && item.durationKind == DurationKind.UNTIL_RUN_END
             && (item.effectKind == EffectKind.RAPID_FIRE || item.effectKind == EffectKind.BULLET_SPEED);
     }
+    /** Whether a level is active. Used by the game bridge (ItemSystem) to avoid double begin/end. */
+    boolean isLevelActive() { return active; }
     private void requireActive() { if (!active) throw new IllegalStateException("level is inactive"); }
     private String levelId() { return active ? rules.levelId : null; }
     private static Long effectId(EffectView effect) { return effect == null ? null : effect.effectId; }
@@ -261,7 +279,12 @@ final class ItemManager {
     private void emit(EventType type, String itemId, Long dropId, Long effectId, Integer slot,
                       Long pendingId, GrantRequest request, GrantStatus status,
                       EffectEndReason reason, Bounds bounds) {
-        events.add(new ItemEvent(nextEventId++, type, itemId, levelId(), dropId, effectId,
-            slot, pendingId, request, status, reason, bounds));
+        ItemEvent event = new ItemEvent(nextEventId++, type, itemId, levelId(), dropId, effectId,
+            slot, pendingId, request, status, reason, bounds);
+        events.add(event);
+        if (listener != null) listener.accept(event);
     }
+
+    /** Sets the listener told about every new event. The listener must not call back into the manager. */
+    void setEventListener(Consumer<ItemEvent> eventListener) { listener = eventListener; }
 }

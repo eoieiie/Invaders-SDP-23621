@@ -7,49 +7,46 @@ import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 
 /**
- * 외부에서 사용하는 유일한 진입점. 공개 자료형도 이 파일의 static 중첩 타입이다.
- * 요청 전달과 값 객체는 작성되어 있다. 내부 4개 파일이 STUB이므로 아직 게임에 연결하지 않는다.
- * 한 판당 한 인스턴스, 같은 게임 상태 소유 스레드에서만 호출한다. 콜백의 재진입은 금지한다.
+ * General item entry point for shop, input, combat and HUD. Public data types are static nested types in this file.
+ * Game loop begin/update/end is provided by ItemManager.
+ * Shares the single manager of a run and is called only from the thread that owns game state.
+ * Re-entrant callbacks are not allowed.
  */
 public final class ItemAPI {
     private final ItemManager manager;
 
-    public ItemAPI(int inventoryCapacity, Random random) {
-        if (inventoryCapacity <= 0) throw new IllegalArgumentException("capacity must be positive");
-        required(random, "random");
-        manager = new ItemManager(inventoryCapacity, random);
+    /** Connects the run's manager created by game setup code. Does not create new game state. */
+    public ItemAPI(ItemManager manager) {
+        this.manager = required(manager, "manager");
     }
 
     public ItemInfo getItemInfo(String itemId) { return manager.getItemInfo(itemId); }
     public List<ItemInfo> getItemInfos() { return manager.getItemInfos(); }
     public GrantCheck checkGrant(GrantRequest request) { return manager.checkGrant(request); }
     public GrantResult tryGrant(GrantRequest request) { return manager.tryGrant(request); }
-    public void beginLevel(LevelRules rules, LifePort port) { manager.beginLevel(rules, port); }
     public void onEnemyDefeated(DropSource source, double x, double y) {
         manager.onEnemyDefeated(source, x, y);
     }
-    public void update(long deltaGameMillis, PlayerSnapshot player) { manager.update(deltaGameMillis, player); }
     public UseResult useSlot(int slotIndex) { return manager.useSlot(slotIndex); }
     public boolean tryBlockHit() { return manager.tryBlockHit(); }
     public Modifiers getModifiers() { return manager.getModifiers(); }
     public View getView() { return manager.getView(); }
     public List<ItemEvent> drainEvents() { return manager.drainEvents(); }
-    public void endLevel() { manager.endLevel(); }
 
     public interface LifePort {
-        /** 읽기 전용. 가능 여부만 확인하며 상태/이벤트를 변경하지 않는다. */
+        /** Read-only. Only checks whether it is possible; does not change state or events. */
         boolean canAddLife();
-        /** true: 목숨 정확히 1개 증가 완료. false: 아무 상태도 변경하지 않음. */
+        /** true: life item effect applied (+1 life, or a score bonus at the cap). false: no state was changed. */
         boolean tryAddLife();
     }
 
     public enum ActivationMode { ON_PICKUP, MANUAL }
     public enum EffectKind { LIFE, SHIELD, RAPID_FIRE, BULLET_SPEED, FREEZE }
-    public enum DurationKind { INSTANT, TIMED, UNTIL_LEVEL_END }
+    /** UNTIL_RUN_END: lasts for the whole run and stacks when picked up again (rapid fire, bullet speed). */
+    public enum DurationKind { INSTANT, TIMED, UNTIL_LEVEL_END, UNTIL_RUN_END }
     public enum DropSource { REGULAR_ENEMY, SPECIAL_ENEMY }
     public enum GrantSource { SHOP, REWARD }
     public enum GrantTiming { NOW, NEXT_LEVEL }
@@ -71,7 +68,7 @@ public final class ItemAPI {
         ITEM_GRANTED, PENDING_GRANT_APPLIED
     }
 
-    /** 작은 불변 값은 public final 필드로 읽는다. setter/상태 변경 메서드는 없다. */
+    /** Small immutable values are read through public final fields. No setters or state-changing methods. */
     public static final class Bounds {
         public final double x, y, width, height;
         public Bounds(double x, double y, double width, double height) {
@@ -90,18 +87,22 @@ public final class ItemAPI {
         }
     }
 
+    /**
+     * Values added by items. The game keeps its base values and computes (base) + (item bonus).
+     * fireRateBonus: extra shots per second. bulletSpeedBonus: extra bullet speed in pixels per frame.
+     */
     public static final class Modifiers {
-        public final double fireRateMultiplier, bulletSpeedMultiplier;
+        public final double fireRateBonus, bulletSpeedBonus;
         public final boolean enemyMovementBlocked;
-        public Modifiers(double fireRate, double bulletSpeed, boolean blocked) {
-            positive(fireRate, "fireRate"); positive(bulletSpeed, "bulletSpeed");
-            fireRateMultiplier = fireRate; bulletSpeedMultiplier = bulletSpeed;
+        public Modifiers(double fireRateBonus, double bulletSpeedBonus, boolean blocked) {
+            nonNegative(fireRateBonus, "fireRateBonus"); nonNegative(bulletSpeedBonus, "bulletSpeedBonus");
+            this.fireRateBonus = fireRateBonus; this.bulletSpeedBonus = bulletSpeedBonus;
             enemyMovementBlocked = blocked;
         }
-        public static Modifiers neutral() { return new Modifiers(1.0, 1.0, false); }
+        public static Modifiers neutral() { return new Modifiers(0.0, 0.0, false); }
     }
 
-    /** 종류의 불변 정의 정보. 현재 소유/판매 여부와 무관하다. */
+    /** Immutable definition of an item kind. Independent of current ownership or sale. */
     public static final class ItemInfo {
         public final String itemId, displayName, description, iconKey;
         public final ActivationMode activationMode;
@@ -109,12 +110,15 @@ public final class ItemAPI {
         public final DurationKind durationKind;
         public final Long durationMillis;
         public final Integer charges;
+        /** First-pickup bonus of a stacking (UNTIL_RUN_END) effect. Later pickups add less. */
         public final Double magnitude;
+        /** Max stacks of a stacking effect. null otherwise. */
+        public final Integer maxStacks;
         public final Set<GrantTiming> supportedGrantTimings;
         public ItemInfo(String itemId, String name, String description, String iconKey,
                         ActivationMode mode, EffectKind kind, DurationKind duration,
                         Long milliseconds, Integer charges, Double magnitude,
-                        Set<GrantTiming> timings) {
+                        Integer maxStacks, Set<GrantTiming> timings) {
             this.itemId = text(itemId, "itemId"); displayName = text(name, "name");
             this.description = required(description, "description"); this.iconKey = text(iconKey, "iconKey");
             activationMode = required(mode, "mode"); effectKind = required(kind, "kind");
@@ -122,19 +126,26 @@ public final class ItemAPI {
             if (milliseconds != null && milliseconds <= 0) throw new IllegalArgumentException("durationMillis");
             if (charges != null && charges <= 0) throw new IllegalArgumentException("charges");
             if (magnitude != null) positive(magnitude, "magnitude");
+            if (maxStacks != null && maxStacks <= 0) throw new IllegalArgumentException("maxStacks");
             durationMillis = milliseconds; this.charges = charges; this.magnitude = magnitude;
+            this.maxStacks = maxStacks;
             required(timings, "timings");
             if (timings.isEmpty()) throw new IllegalArgumentException("timings");
             for (GrantTiming timing : timings) required(timing, "timing");
             supportedGrantTimings = Collections.unmodifiableSet(EnumSet.copyOf(timings));
-            // 항목 간 의미 검증(NEXT_LEVEL 지원 조합 등)은 ItemDefinitions 담당이다.
+            // Cross-field checks (supported NEXT_LEVEL combinations, etc.) belong to ItemDefinitions.
         }
     }
 
     public static final class DropRule {
         public final double probability;
         public final Map<String, Double> weights;
+        /** itemId → weight multiplier per stack (0~1). Missing means 1 (no decay). Not dropped at max stacks. */
+        public final Map<String, Double> stackDecay;
         public DropRule(double probability, Map<String, Double> weights) {
+            this(probability, weights, Collections.<String, Double>emptyMap());
+        }
+        public DropRule(double probability, Map<String, Double> weights, Map<String, Double> stackDecay) {
             finite(probability, "probability");
             if (probability < 0 || probability > 1) throw new IllegalArgumentException("probability");
             this.probability = probability;
@@ -147,6 +158,20 @@ public final class ItemAPI {
                 copy.put(entry.getKey(), weight);
             }
             this.weights = Collections.unmodifiableMap(copy);
+            required(stackDecay, "stackDecay");
+            Map<String, Double> decay = new LinkedHashMap<String, Double>();
+            for (Map.Entry<String, Double> entry : stackDecay.entrySet()) {
+                text(entry.getKey(), "itemId"); double factor = required(entry.getValue(), "decay");
+                finite(factor, "decay");
+                if (factor < 0 || factor > 1) throw new IllegalArgumentException("decay");
+                decay.put(entry.getKey(), factor);
+            }
+            this.stackDecay = Collections.unmodifiableMap(decay);
+        }
+        /** Weight adjusted for the current stack count. */
+        double weightFor(String itemId, double weight, int stacks) {
+            Double factor = stackDecay.get(itemId);
+            return factor == null || stacks <= 0 ? weight : weight * Math.pow(factor, stacks);
         }
     }
 
@@ -254,11 +279,16 @@ public final class ItemAPI {
         public final ItemInfo item;
         public final Long remainingMillis;
         public final Integer remainingCharges;
-        public EffectView(long id, ItemInfo item, Long time, Integer charges) {
+        /** Current stack count of a stacking effect. null otherwise. */
+        public final Integer stacks;
+        public EffectView(long id, ItemInfo item, Long time, Integer charges) { this(id, item, time, charges, null); }
+        public EffectView(long id, ItemInfo item, Long time, Integer charges, Integer stacks) {
             if (id <= 0) throw new IllegalArgumentException("effectId");
             if (time != null && time <= 0) throw new IllegalArgumentException("remainingMillis");
             if (charges != null && charges <= 0) throw new IllegalArgumentException("remainingCharges");
+            if (stacks != null && stacks <= 0) throw new IllegalArgumentException("stacks");
             effectId = id; this.item = required(item, "item"); remainingMillis = time; remainingCharges = charges;
+            this.stacks = stacks;
         }
     }
 
@@ -274,7 +304,7 @@ public final class ItemAPI {
 
     public static final class View {
         public final List<DropView> drops;
-        /** 목록 인덱스가 슬롯 번호. null 원소는 빈 슬롯이며 이 목록에서만 허용한다. */
+        /** The list index is the slot number. A null element is an empty slot and is allowed only in this list. */
         public final List<ItemInfo> slots;
         public final List<EffectView> effects;
         public final List<PendingGrantView> pendingGrants;
@@ -306,7 +336,7 @@ public final class ItemAPI {
         }
     }
 
-    // 패키지 내부 공통 값 검증. 게임 규칙/난수/시계/외부 포트에 접근하지 않는다.
+    // Shared value checks inside the package. Does not touch game rules, randomness, clocks or external ports.
     static <T> T required(T value, String name) {
         if (value == null) throw new IllegalArgumentException(name + " is required");
         return value;
@@ -318,6 +348,10 @@ public final class ItemAPI {
     }
     static void finite(double value, String name) {
         if (Double.isNaN(value) || Double.isInfinite(value)) throw new IllegalArgumentException(name + " must be finite");
+    }
+    static void nonNegative(double value, String name) {
+        finite(value, name);
+        if (value < 0) throw new IllegalArgumentException(name + " must not be negative");
     }
     static void positive(double value, String name) {
         finite(value, name);

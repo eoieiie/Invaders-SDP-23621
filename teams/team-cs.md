@@ -28,12 +28,12 @@ Team CS owns the **Item System** requirement: items that spawn during gameplay, 
 3. **Active/Passive Item Classification** — Define a data structure that classifies each item as either Active (stored, triggered by key press) or Passive (instant effect on pickup), so other systems can query an item's category without depending on Item System internals.
 4. **Life Item** — Grants an extra life. If the player's current lives are below the max-life cap (default: 5), the life is applied instantly; if the player is already at the cap, the pickup instead grants a 500-point score bonus so it is not wasted. The max-life cap is Team CS's initial value and may be adjusted together with the Level Design team.
 5. **Shield Item** — On use/pickup, negates exactly one incoming hit within a 10-second window; the effect ends when that window expires or after it absorbs one hit, whichever comes first.
-6. **Rapid Fire Item** — Increases the player's firing rate by 50% for the duration of the current level.
-7. **Bullet Speed Item** — Increases projectile speed by 5–10% for the duration of the current level.
+6. **Rapid Fire Item** — Increases the player's firing rate for the rest of the run (it carries over between levels). The first pickup adds +0.5 shots per second on top of the base rate; further pickups stack with diminishing gains (bonus × log2(1 + stacks)), up to 10 stacks. Each stack the player already has lowers the item's drop weight, and it stops dropping at the stack limit.
+7. **Bullet Speed Item** — Increases projectile speed for the rest of the run (it carries over between levels). The first pickup adds +1 pixel per frame on top of the base bullet speed; further pickups stack the same way as Rapid Fire (bonus × log2(1 + stacks), up to 10 stacks), with the same drop-weight reduction.
 8. **Freeze Item** — On use, disables all enemy movement for 5 seconds.
 
 ## Dependencies on Other Teams
 
 1. **Visual Effect System** — Item drop appearance and pickup/activation visuals need to be agreed upon with the Visual Effect (graphics) team.
-2. **Level Design System** — The initial drop-probability and max-life-cap values above are Team CS's own working defaults; they need to be reviewed and tuned jointly with the Level Design team as overall level balance is set.
+2. **Level Design System** — The initial drop-probability and max-life-cap values above are Team CS's own working defaults; they need to be reviewed and tuned jointly with the Level Design team as overall level balance is set. All item balance values (drop rates and weights, effect durations, stack bonuses and limits, life cap and bonus score) are kept in `res/item-balance.properties`, so they can be tuned without recompiling.
 3. **Gameplay HUD** — Displaying which Active item the player is currently holding (before it is used) requires a shared interface with the HUD team.

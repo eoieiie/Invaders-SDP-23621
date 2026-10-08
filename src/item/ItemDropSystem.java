@@ -9,10 +9,10 @@ import java.util.Random;
 import item.ItemAPI.*;
 
 /**
- * 드롭 관리: 아이템 개체 생성/낙하/착지/접촉/소멸의 원본 상태를 소유함.
- * 내부에 private static class DroppedItem을 만들어 id/ItemInfo/double 위치/착지/TTL을 저장함.
- * 별도 파일, Entity 상속, 인벤토리/효과 변경, 게임 객체 참조를 추가하지 않음.
- * 이벤트 큐는 여기 두지 않음. 생성/만료/접촉 결과를 매니저가 받아 사건으로 기록함.
+ * Drop management: owns the source state for spawning, falling, landing, contact and removal of item drops.
+ * Stores id/ItemInfo/double position/landed/TTL in the inner private static class DroppedItem.
+ * No separate files, no Entity subclass, no inventory/effect changes, no game object references.
+ * No event queue here. The manager receives spawn/expire/contact results and records them as events.
  */
 class ItemDropSystem {
     private final ItemDefinitions definitions;
@@ -48,46 +48,49 @@ class ItemDropSystem {
         this.random = ItemAPI.required(random, "random");
     }
 
-    /** 검증된 새 규칙을 설치하고 개체 목록 초기화. dropId 증가 카운터는 재사용하지 않음. */
+    /** Installs new validated rules and clears the drop list. The dropId counter is never reused. */
     void beginLevel(LevelRules rules) {
         this.rules = ItemAPI.required(rules, "rules");
         items.clear();
     }
 
     /**
-     * source의 확률/가중치로 종류 하나를 추첨하고 실제 목록에 등록한 뒤 불변 View 반환.
-     * 정상 미드랍만 null. p==0/1은 확률용 난수를 소비하지 않음. 단일 후보도 선택 난수 생략.
-     * 가중치 순서는 LinkedHashMap 삽입 순서. 중심을 cx/cy에 맞추고 플레이 영역으로 보정함.
-     * 일반 확률 0.15/특수 1.0은 데모 정책이며 실제 수치는 LevelRules에서 받음.
-     * 같은 적의 중복 처치 통보 방지는 외부 게임이 담당함.
+     * Rolls one kind using the source's probability/weights, registers it, then returns an immutable View.
+     * null only for a normal no-drop. p==0/1 consumes no probability roll. A single candidate skips the pick roll too.
+     * Weight order is LinkedHashMap insertion order. Centers on cx/cy and clamps to the play area.
+     * Regular 0.15 / special 1.0 are demo values; the actual values come from LevelRules.
+     * Preventing duplicate defeat notices for the same enemy is the game's job.
+     * stacks (itemId → current stack count) lowers stacking items' weights and removes them at max stacks.
+     * No drop (null) when every candidate is removed.
      */
-    DropView spawn(DropSource source, double cx, double cy) {
+    DropView spawn(DropSource source, double cx, double cy, Map<String, Integer> stacks) {
         requireActive();
         ItemAPI.required(source, "source");
         ItemAPI.finite(cx, "cx");
         ItemAPI.finite(cy, "cy");
+        ItemAPI.required(stacks, "stacks");
         DropRule rule = rules.dropRules.get(source);
         if (rule == null) throw new IllegalStateException("missing drop rule: " + source);
         if (rule.probability == 0) return null;
         if (rule.probability < 1 && random.nextDouble() >= rule.probability) return null;
 
+        Map<String, Double> weights = new LinkedHashMap<String, Double>();
         double total = 0;
-        int candidates = 0;
         String selected = null;
         for (Map.Entry<String, Double> entry : rule.weights.entrySet()) {
-            if (entry.getValue() > 0) {
-                total += entry.getValue();
-                candidates++;
+            double weight = effectiveWeight(rule, entry.getKey(), entry.getValue(), stacks);
+            if (weight > 0) {
+                weights.put(entry.getKey(), weight);
+                total += weight;
                 selected = entry.getKey();
             }
         }
-        if (candidates == 0 || !Double.isFinite(total))
-            throw new IllegalStateException("invalid drop weights");
-        if (candidates > 1) {
+        if (!Double.isFinite(total)) throw new IllegalStateException("invalid drop weights");
+        if (weights.isEmpty()) return null; // every remaining candidate is at max stacks
+        if (weights.size() > 1) {
             double target = random.nextDouble() * total;
             double cumulative = 0;
-            for (Map.Entry<String, Double> entry : rule.weights.entrySet()) {
-                if (entry.getValue() <= 0) continue;
+            for (Map.Entry<String, Double> entry : weights.entrySet()) {
                 cumulative += entry.getValue();
                 if (target < cumulative) {
                     selected = entry.getKey();
@@ -108,14 +111,14 @@ class ItemDropSystem {
     }
 
     /**
-     * delta>=0 밀리초만큼 개체 이동. y += fallSpeed * delta / 1000.0.
-     * 아래쪽이 floorY에 닿으면 멈추며, 프레임 중간 착지라면 착지 이후 시간만 TTL 차감.
-     * 1) 만료 개체를 먼저 목록에서 제거해 expired에 넣음.
-     * 2) 나머지는 수직 이전/현재 구간과 플레이어 사각형의 접촉을 검사함(경계 포함).
-     *    canPickup=false이면 contacts는 빈 목록. delta=0이라도 허용된 현재 접촉은 검사.
-     * 3) contacts는 중복 없는 dropId 오름차순이며, 이 개체들은 아직 원본 목록에서 제거하지 않음.
-     * 같은 직렬 update 동안 completePickup 이외에 contacts를 변경/제거하지 않음.
-     * 획득 가능 여부/효과 적용은 매니저가 판단함. 여기서 저장·소비·이벤트 발행은 금지함.
+     * Moves drops by delta>=0 milliseconds. y += fallSpeed * delta / 1000.0.
+     * Stops when the bottom reaches floorY; when landing mid-frame, only the time after landing counts against TTL.
+     * 1) Expired drops are removed from the list first and put in expired.
+     * 2) The rest are checked for contact between their previous/current vertical span and the player rectangle (edges included).
+     *    contacts is empty when canPickup=false. Even with delta=0, allowed current contacts are checked.
+     * 3) contacts is in ascending dropId order without duplicates; these drops are not yet removed from the list.
+     * During the same serial update, contacts are not changed/removed except by completePickup.
+     * The manager decides pickup and effect application. No storing, consuming or event publishing here.
      */
     Frame advance(long delta, PlayerSnapshot player) {
         requireActive();
@@ -142,7 +145,7 @@ class ItemDropSystem {
             }
             if (item.grounded) item.remainingMillis -= groundedMillis;
             DropView view = item.view(rules);
-            // 만료가 접촉보다 우선함. 접촉만으로 원본 아이템을 제거하지 않음.
+            // Expiry wins over contact. Contact alone does not remove the drop.
             if (item.remainingMillis <= 0) {
                 iterator.remove();
                 expired.add(view);
@@ -161,28 +164,37 @@ class ItemDropSystem {
     }
 
     /**
-     * 매니저가 획득 성공한 contact 하나를 제거함. 유효한 단일 갱신 처리 안에서 반드시 완료됨.
-     * 없는 ID면 통합 버그이므로 예외. 이미 지급됐는데 조용히 제거 실패하는 코드는 금지함.
+     * Removes one contact the manager picked up successfully. Always completes within a single valid update.
+     * An unknown ID is an integration bug, so it throws. Never silently fail to remove after the item was granted.
      */
     void completePickup(long dropId) {
         if (items.remove(dropId) == null)
             throw new IllegalStateException("unknown drop: " + dropId);
     }
 
-    /** dropId 순서의 불변 View 사본. 원본 개체/목록은 노출하지 않음. */
+    /** Immutable View copies in dropId order. The source drops/list are never exposed. */
     List<DropView> snapshot() {
         List<DropView> result = new ArrayList<DropView>();
         for (DroppedItem item : items.values()) result.add(item.view(rules));
         return ItemAPI.frozen(result, false);
     }
 
-    /** 스테이지 종료 시 개체/현재 규칙 해제. 시간 만료 사건은 만들지 않고 ID는 유지함. */
+    /** Clears drops and current rules when a stage ends. Creates no expiry events and keeps the IDs. */
     void clear() {
         items.clear();
         rules = null;
     }
 
-    /** 내부 협력용 결과. 값 객체만 완성하며 이동/접촉 계산은 없음. */
+    private double effectiveWeight(DropRule rule, String itemId, double weight, Map<String, Integer> stacks) {
+        if (weight <= 0) return 0;
+        Integer count = stacks.get(itemId);
+        if (count == null || count <= 0) return weight;
+        ItemInfo info = definitions.find(itemId);
+        if (info != null && info.maxStacks != null && count >= info.maxStacks) return 0;
+        return rule.weightFor(itemId, weight, count);
+    }
+
+    /** Internal result. A plain value object with no movement/contact logic. */
     static final class Frame {
         final List<DropView> expired, contacts;
         Frame(List<DropView> expired, List<DropView> contacts) {
