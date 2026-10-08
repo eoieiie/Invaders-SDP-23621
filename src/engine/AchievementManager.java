@@ -5,10 +5,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import engine.DrawManager.SpriteType;
+
 /** Manages achievement progress and persistence. */
 public class AchievementManager {
 
-	/** Number of player kills required for Three Kills. */
+	/** Number of player kills required for First Flight. */
 	private static final int THREE_KILLS_TARGET = 3;
 
 	/** Persistent player profile. */
@@ -29,10 +31,11 @@ public class AchievementManager {
 		addFirstKillAchievement();
 	}
 
-	/** Adds the Three Kills achievement. */
+	/** Adds the First Flight achievement. */
 	private void addFirstKillAchievement() {
-		this.achievements.add(new Achievement("first_kill", "Three Kills",
-				"Defeat three enemies.", THREE_KILLS_TARGET, this.playerProfile
+		this.achievements.add(new Achievement("first_kill", "First Flight",
+				"Welcome to Invaders.", THREE_KILLS_TARGET,
+				SpriteType.FirstFlight, this.playerProfile
 						.isAchievementUnlocked("first_kill")));
 	}
 

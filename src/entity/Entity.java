@@ -56,6 +56,18 @@ public class Entity {
 	public final Color getColor() {
 		return color;
 	}
+	/**
+ 	* AUTHORED BY: VFX TEAM (effection)
+ 	*
+ 	* Setter for the color of the entity.
+ 	* Used by Ship to blink when lives remain 1.
+ 	*
+ 	* @param color
+ 	*            New color of the entity.
+ 	*/
+	protected final void setColor(final Color color) {
+    	this.color = color;
+	}
 
 	/**
 	 * Getter for the X axis position of the entity.

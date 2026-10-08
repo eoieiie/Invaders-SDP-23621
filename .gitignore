@@ -187,3 +187,9 @@ out/
 
 # Local player profile written at runtime (kill counts and achievements)
 /player-profile
+
+# Local currency save files (per-player, never commit)
+coins
+diamonds
+coins.tmp
+diamonds.tmp
