@@ -839,4 +839,32 @@ public final class DrawManager {
 			backBufferGraphics.setColor(Color.WHITE);
 		drawCenteredRegularString(screen, string, height);
 	}
+	/**
+	 * Draws the damage dim overlay when the player is hit.
+	 *AUTHORED BY: VFX TEAM (Effection)
+	 *Any further inquiries please contact us.
+	 * @param screen
+	 *            Screen to draw on.
+	 * @param effect
+	 *            Dim effect to draw.
+	 */
+	public void drawDamageDim(final Screen screen,
+			final DamageDimEffect effect) {
+		if (effect != null)
+			effect.draw(backBufferGraphics, screen.getWidth(),
+					screen.getHeight());
+	}                                          // <- ADD
+
+	/**                                        // <- ADD
+	 * Draws the low-health glitch effect.
+	 * AUTHORED BY: VFX TEAM (Effection)
+	 *Any further inquiries please contact us.
+	 * 
+	 * @param screen Screen to draw on.
+	 * @param effect Glitch effect to draw.
+	 */
+	public void drawGlitch(final Screen screen, final GlitchEffect effect) {
+		if (effect != null)
+			effect.draw(backBuffer, backBufferGraphics);
+	}
 }

@@ -1,19 +1,66 @@
-# Team Hello World (Main Menu) — files our team owns.
-# A pull request that changes one of these files requests a review from its owner.
-# Shared engine files (Core, DrawManager, GameScreen) are not listed: no single team owns them.
+# Code owners. A pull request that changes a listed file automatically
+# requests a review from the people listed next to it.
+#
+# This only requests a review. Code owner approval is not required to merge.
+#
+# GitHub only requests a review from someone with write access to the
+# repository the pull request targets. In a team fork that is every member,
+# and in the course repository it is that team's access holder. A line can
+# carry both, and each is used where they have access.
+#
+# Shared engine files (Core, DrawManager, GameScreen, Screen, InputManager,
+# Frame) are deliberately not listed. No single team owns them.
+#
+# Other teams: the lines under your name are a guess from the file names, left
+# commented out. Delete the # on the ones that are yours, fix what is wrong,
+# and add what is missing. The handle is your fork owner from the README table.
 
-# Menu framework and title screen
-/src/screen/MenuItem.java           @Aninnom
-/src/screen/TitleScreen.java        @Aninnom
+# Team 1, Hanyang Space, Sound Effects
+# /src/engine/SoundManager.java        @AyeJay21
 
-# Screens reached from the main menu
-/src/screen/SettingsScreen.java     @kyle891204
-/src/screen/ShopScreen.java         @oofrog
-/src/screen/AchievementsScreen.java @junh000
-/src/screen/ShipSelectScreen.java   @nuyh-99
+# Team 2, A1, Player and Enemy Ship Variety
+# /src/entity/Ship.java                @calzsvg
+# /src/entity/EnemyShip.java           @calzsvg
+# /src/entity/EnemyShipFormation.java  @calzsvg
 
-# Team documents and repository tooling
-/teams/HelloWorld.md                @eoieiie
-/teams/HelloWorld-Git-Workflow.md   @eoieiie
-/.github/                           @eoieiie
-/.gitignore                         @eoieiie
+# Team 3, GOG, Currency System
+# /src/engine/CurrencyManager.java     @wamos0922
+# /src/engine/DiamondManager.java      @wamos0922
+# /src/engine/CoinDropManager.java     @wamos0922
+# /src/entity/Coin.java                @wamos0922
+# /src/entity/CoinPool.java            @wamos0922
+# /src/screen/CashOutScreen.java       @wamos0922
+
+# Team 4, ECE, Gameplay HUD
+# @Rochdgrvrn
+
+# Team 5, KFC, Level Design System
+# /src/engine/GameSettings.java        @1322528197ldy-tech
+
+# Team 6, Effection, Visual Effects
+# @KaiSuf
+
+# Team 7, Mantis, Records and Achievements
+# /src/engine/Achievement.java         @Adiboba
+# /src/engine/AchievementManager.java  @Adiboba
+# /src/engine/Score.java               @Adiboba
+# /src/engine/PlayerProfile.java       @Adiboba
+# /src/screen/HighScoreScreen.java     @Adiboba
+# /src/screen/ScoreScreen.java         @Adiboba
+
+# Team 8, Team CS, Item System
+# @doha1208
+
+# Team 9, Hello World, Main Menu
+# The three shells are filled in by the teams that own their contents, so our
+# access holder is listed there as well to catch those pull requests upstream.
+/src/screen/MenuItem.java            @Aninnom
+/src/screen/TitleScreen.java         @Aninnom
+/src/screen/SettingsScreen.java      @kyle891204
+/src/screen/ShopScreen.java          @oofrog @kyle891204
+/src/screen/AchievementsScreen.java  @junh000 @kyle891204
+/src/screen/ShipSelectScreen.java    @nuyh-99 @kyle891204
+/teams/HelloWorld.md                 @eoieiie
+/teams/HelloWorld-Git-Workflow.md    @eoieiie
+/.github/                            @eoieiie
+/.gitignore                          @eoieiie
