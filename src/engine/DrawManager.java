@@ -118,7 +118,6 @@ public final class DrawManager {
 			// Font loading.
 			fontRegular = fileManager.loadFont(14f);
 			fontBig = fileManager.loadFont(24f);
-			fontSelected = fontRegular.deriveFont(17f);
 			logger.info("Finished loading the fonts.");
 
 		} catch (IOException e) {
@@ -130,6 +129,11 @@ public final class DrawManager {
 			fontRegular = new Font(Font.MONOSPACED, Font.PLAIN, 14);
 			fontBig = new Font(Font.MONOSPACED, Font.PLAIN, 24);
 		}
+
+		// Derived outside the try so it is set on the fallback path too.
+		// While it was inside, a missing font file left it null and the game
+		// died on the first frame.
+		fontSelected = fontRegular.deriveFont(17f);
 	}
 
 	/**
