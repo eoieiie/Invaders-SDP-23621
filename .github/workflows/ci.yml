@@ -24,3 +24,46 @@ jobs:
 
       - name: Check resources referenced by code exist
         run: test -f res/graphics && test -f res/scores
+
+  # Runs the game for a few seconds on a virtual display and fails if it
+  # throws. Compiling is not enough: a missing font made the game die on the
+  # first frame while the window stayed open, which looked like a white screen
+  # and passed the compile check. Process "still alive" is not a pass either,
+  # because Swing keeps the window open after the main thread dies, so the
+  # verdict comes from the log.
+  #
+  # CI has no res/font.ttf (it is gitignored), so this also covers a fresh
+  # clone or an IDE that does not put res on the classpath.
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Compile
+        run: |
+          mkdir -p bin
+          javac -d bin $(find src -name '*.java')
+
+      - name: Install virtual display
+        run: sudo apt-get update -q && sudo apt-get install -y -q xvfb
+
+      - name: Run the game for 10 seconds
+        run: xvfb-run -a timeout 10 java -cp bin:res engine.Core > game.log 2>&1 || true
+
+      - name: Check the log
+        run: |
+          cat game.log
+          if grep -q "Exception" game.log; then
+            echo "::error::The game threw an exception while starting. See the log above."
+            exit 1
+          fi
+          if ! grep -q "title screen" game.log; then
+            echo "::error::The game never reached the title screen."
+            exit 1
+          fi
+          echo "Reached the title screen with no exceptions."
