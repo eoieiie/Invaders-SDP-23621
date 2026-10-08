@@ -82,7 +82,9 @@ public final class DrawManager {
 		/** Bonus ship. */
 		EnemyShipSpecial,
 		/** Destroyed enemy ship. */
-		Explosion
+		Explosion,
+		/** First Flight achievement icon. */
+		FirstFlight
 	};
 
 	/**
@@ -108,6 +110,7 @@ public final class DrawManager {
 			spriteMap.put(SpriteType.EnemyShipC2, new boolean[12][8]);
 			spriteMap.put(SpriteType.EnemyShipSpecial, new boolean[16][7]);
 			spriteMap.put(SpriteType.Explosion, new boolean[13][7]);
+			spriteMap.put(SpriteType.FirstFlight, new boolean[11][8]);
 
 			fileManager.loadSprite(spriteMap);
 			logger.info("Finished loading the sprites.");
@@ -199,9 +202,23 @@ public final class DrawManager {
 	 */
 	public void drawEntity(final Entity entity, final int positionX,
 			final int positionY) {
-		boolean[][] image = spriteMap.get(entity.getSpriteType());
+		drawSprite(entity.getSpriteType(), positionX, positionY,
+				entity.getColor());
+	}
 
-		backBufferGraphics.setColor(entity.getColor());
+	/**
+	 * Draws a sprite using the game's standard two-pixel scale.
+	 *
+	 * @param spriteType Sprite to draw.
+	 * @param positionX Coordinates for the left side of the image.
+	 * @param positionY Coordinates for the upper side of the image.
+	 * @param color Color used for filled pixels.
+	 */
+	public void drawSprite(final SpriteType spriteType, final int positionX,
+			final int positionY, final Color color) {
+		boolean[][] image = spriteMap.get(spriteType);
+
+		backBufferGraphics.setColor(color);
 		for (int i = 0; i < image.length; i++)
 			for (int j = 0; j < image[i].length; j++)
 				if (image[i][j])
@@ -209,6 +226,36 @@ public final class DrawManager {
 							+ j * 2, 1, 1);
 	}
 
+	/**
+	 * Draws regular text at an exact position, left aligned.
+	 *
+	 * @param string    Text to draw.
+	 * @param positionX Horizontal position of the left edge.
+	 * @param positionY Vertical position of the baseline.
+	 * @param color     Colour of the text.
+	 */
+	public void drawRegularString(final String string, final int positionX,
+			final int positionY, final Color color) {
+		backBufferGraphics.setFont(fontRegular);
+		backBufferGraphics.setColor(color);
+		backBufferGraphics.drawString(string, positionX, positionY);
+	}
+
+	/**
+	 * Draws an empty rectangle outline.
+	 *
+	 * @param positionX Horizontal position of the left edge.
+	 * @param positionY Vertical position of the top edge.
+	 * @param width     Width of the box.
+	 * @param height    Height of the box.
+	 * @param color     Colour of the outline.
+	 */
+	public void drawBox(final int positionX, final int positionY,
+			final int width, final int height, final Color color) {
+		backBufferGraphics.setColor(color);
+		backBufferGraphics.drawRect(positionX, positionY, width, height);
+	}
+	
 	/**
 	 * Draws a dropped coin as a filled circle (GoG - Currency System).
 	 * Coins have no entry in the shared sprite file, so they are drawn
@@ -541,24 +588,69 @@ public final class DrawManager {
 	 *
 	 * @param screen Screen where the popup is drawn.
 	 * @param achievement Newly unlocked achievement.
+	 * @param elapsedMilliseconds Time since the popup started.
+	 * @param durationMilliseconds Total popup duration.
+	 * @param slideInMilliseconds Slide-in duration.
+	 * @param slideOutMilliseconds Slide-out duration.
 	 */
 	public void drawAchievementUnlocked(final Screen screen,
-			final Achievement achievement) {
-		int boxWidth = screen.getWidth() / 2;
-		int boxHeight = fontRegularMetrics.getHeight() * 3;
-		int boxX = (screen.getWidth() - boxWidth) / 2;
-		int boxY = screen.getHeight() - boxHeight
-				- fontRegularMetrics.getHeight();
+			final Achievement achievement, final long elapsedMilliseconds,
+			final int durationMilliseconds, final int slideInMilliseconds,
+			final int slideOutMilliseconds) {
+		int boxWidth = 218;
+		int boxHeight = 44;
+		int visibleX = screen.getWidth() - boxWidth - 6;
+		int hiddenX = screen.getWidth() + 2;
+		int boxY = 46;
+		int boxX = visibleX;
+
+		if (elapsedMilliseconds < slideInMilliseconds)
+			boxX = hiddenX - (hiddenX - visibleX) * (int) elapsedMilliseconds
+					/ slideInMilliseconds;
+		else if (elapsedMilliseconds > durationMilliseconds
+				- slideOutMilliseconds)
+			boxX = visibleX + (hiddenX - visibleX) * (int) (elapsedMilliseconds
+					- (durationMilliseconds - slideOutMilliseconds))
+					/ slideOutMilliseconds;
 
 		backBufferGraphics.setColor(Color.BLACK);
 		backBufferGraphics.fillRect(boxX, boxY, boxWidth, boxHeight);
 		backBufferGraphics.setColor(Color.GREEN);
 		backBufferGraphics.drawRect(boxX, boxY, boxWidth, boxHeight);
-		drawCenteredRegularString(screen, "Achievement unlocked!", boxY
-				+ fontRegularMetrics.getHeight() * 3 / 2);
+		backBufferGraphics.setColor(Color.GREEN);
+		backBufferGraphics.drawString("ACHIEVEMENT UNLOCKED", boxX + 34,
+				boxY + 16);
+		drawSprite(achievement.getSpriteType(), boxX + 8, boxY + 23,
+				Color.YELLOW);
 		backBufferGraphics.setColor(Color.WHITE);
-		drawCenteredRegularString(screen, achievement.getName(), boxY
-				+ fontRegularMetrics.getHeight() * 5 / 2);
+		backBufferGraphics.drawString(achievement.getName(), boxX + 34,
+				boxY + 35);
+	}
+
+	/**
+	 * Draws an achievement icon alongside its name, status, and description.
+	 *
+	 * @param screen Screen where the achievement is drawn.
+	 * @param achievement Achievement to display.
+	 */
+	public void drawAchievement(final Screen screen,
+			final Achievement achievement) {
+		int iconX = screen.getWidth() / 5;
+		int contentX = iconX + 40;
+		int nameY = screen.getHeight() / 2;
+		String status = achievement.isUnlocked() ? "UNLOCKED" : "LOCKED";
+
+		drawSprite(achievement.getSpriteType(), iconX, nameY - 20,
+				achievement.isUnlocked() ? Color.YELLOW : Color.DARK_GRAY);
+		backBufferGraphics.setFont(fontRegular);
+		backBufferGraphics.setColor(achievement.isUnlocked() ? Color.WHITE
+				: Color.GRAY);
+		backBufferGraphics.drawString(achievement.getName() + " - " + status,
+				contentX, nameY);
+		backBufferGraphics.setColor(Color.GRAY);
+		backBufferGraphics.drawString("Unlock: defeat "
+				+ achievement.getRequiredEnemyKills() + " enemies.", contentX,
+				nameY + fontRegularMetrics.getHeight() * 2);
 	}
 
 	/**
@@ -750,6 +842,83 @@ public final class DrawManager {
 		backBufferGraphics.setFont(fontBig);
 		backBufferGraphics.drawString(string, screen.getWidth() / 2
 				- fontBigMetrics.stringWidth(string) / 2, height);
+	}
+
+	/**
+	 * AUTHORED BY: VFX TEAM (Effection)
+	 * Any further inquiries please contact us.
+	 * Draws an entity shrunk around its center and faded, used when enemies
+	 * disappear on game over.
+	 *
+	 * @param entity
+	 *            Entity to be drawn.
+	 * @param scale
+	 *            Size of the entity, from 0 (gone) to 1 (normal size).
+	 */
+	public void drawEntityShrunk(final Entity entity, final double scale) {
+		if (scale <= 0)
+			return;
+		boolean[][] image = spriteMap.get(entity.getSpriteType());
+		Color color = entity.getColor();
+		int alpha = (int) (255 * Math.min(1, scale));
+
+		double centerX = entity.getPositionX() + entity.getWidth() / 2.0;
+		double centerY = entity.getPositionY() + entity.getHeight() / 2.0;
+		int pixelSize = Math.max(1, (int) Math.round(2 * scale));
+
+		backBufferGraphics.setColor(new Color(color.getRed(),
+				color.getGreen(), color.getBlue(), alpha));
+		for (int i = 0; i < image.length; i++)
+			for (int j = 0; j < image[i].length; j++)
+				if (image[i][j])
+					backBufferGraphics.fillRect(
+							(int) (centerX + (i * 2 - entity.getWidth()
+									/ 2.0) * scale),
+							(int) (centerY + (j * 2 - entity.getHeight()
+									/ 2.0) * scale),
+							pixelSize, pixelSize);
+	}
+
+	/**
+	 * AUTHORED BY: VFX TEAM (Effection)
+	 * Any further inquiries please contact us.
+	 * Draws the game over banner shown on the game screen, typed out up to
+	 * the given number of characters. The text stays centered as a whole so
+	 * letters do not shift while typing.
+	 *
+	 *
+	 * @param screen
+	 *            Screen to draw on.
+	 * @param text
+	 *            Full banner text.
+	 * @param visibleChars
+	 *            Number of characters typed so far.
+	 */
+	public void drawGameOverBanner(final Screen screen, final String text,
+			final int visibleChars) {
+		backBufferGraphics.setColor(Color.GREEN);
+		backBufferGraphics.setFont(fontBig);
+		backBufferGraphics.drawString(
+				text.substring(0, Math.min(visibleChars, text.length())),
+				screen.getWidth() / 2 - fontBigMetrics.stringWidth(text) / 2,
+				screen.getHeight() / 2);
+	}
+
+	/**
+	 * Covers the screen with a translucent black layer, used to fade out.
+	 * AUTHORED BY: VFX TEAM (Effection)
+	 * Any further inquiries please contact us.
+	 *
+	 * @param screen
+	 *            Screen to draw on.
+	 * @param alpha
+	 *            Opacity of the layer, from 0 (clear) to 255 (black).
+	 */
+	public void drawFadeOverlay(final Screen screen, final int alpha) {
+		backBufferGraphics.setColor(new Color(0, 0, 0,
+				Math.max(0, Math.min(255, alpha))));
+		backBufferGraphics.fillRect(0, 0, screen.getWidth(),
+				screen.getHeight());
 	}
 
 	/**

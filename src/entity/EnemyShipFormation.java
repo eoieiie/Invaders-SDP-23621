@@ -282,6 +282,55 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 	}
 
 	/**
+	 * Removes destroyed ships from the formation. Used by the game over
+	 * sequence, while the formation is no longer updated.
+	 * AUTHORED BY: VFX TEAM (Effection)
+	 * Any further inquiries please contact us.
+	 */
+	public final void removeDestroyed() {
+		List<EnemyShip> destroyed;
+		for (List<EnemyShip> column : this.enemyShips) {
+			destroyed = new ArrayList<EnemyShip>();
+			for (EnemyShip ship : column) {
+				if (ship != null && ship.isDestroyed()) {
+					destroyed.add(ship);
+					this.logger.info("Removed enemy "
+							+ column.indexOf(ship) + " from column "
+							+ this.enemyShips.indexOf(column));
+				}
+			}
+			column.removeAll(destroyed);
+		}
+	}
+
+	/**
+	 * Takes every remaining ship in the lowest row out of the formation, so
+	 * the game over sequence can animate them on its own.
+	 * AUTHORED BY: VFX TEAM (Effection)
+	 * Any further inquiries please contact us.
+	 *
+	 * @return Ships of the lowest row, empty if no ships were left.
+	 */
+	public final List<EnemyShip> removeBottomRow() {
+		List<EnemyShip> bottomRow = new ArrayList<EnemyShip>();
+		int bottomY = Integer.MIN_VALUE;
+		for (EnemyShip enemyShip : this)
+			if (!enemyShip.isDestroyed())
+				bottomY = Math.max(bottomY, enemyShip.getPositionY());
+		if (bottomY == Integer.MIN_VALUE)
+			return bottomRow;
+
+		for (EnemyShip enemyShip : this)
+			if (!enemyShip.isDestroyed()
+					&& enemyShip.getPositionY() == bottomY)
+				bottomRow.add(enemyShip);
+		for (List<EnemyShip> column : this.enemyShips)
+			column.removeAll(bottomRow);
+		this.shipCount -= bottomRow.size();
+		return bottomRow;
+	}
+
+	/**
 	 * Cleans empty columns, adjusts the width and height of the formation.
 	 */
 	private void cleanUp() {

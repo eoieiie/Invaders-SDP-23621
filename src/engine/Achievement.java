@@ -1,5 +1,7 @@
 package engine;
 
+import engine.DrawManager.SpriteType;
+
 /** Defines an achievement shown to the player. */
 public class Achievement {
 
@@ -11,6 +13,8 @@ public class Achievement {
 	private String description;
 	/** Player kills required to unlock this achievement. */
 	private int requiredEnemyKills;
+	/** Icon displayed for this achievement. */
+	private SpriteType spriteType;
 	/** Whether the achievement is unlocked. */
 	private boolean unlocked;
 
@@ -21,15 +25,17 @@ public class Achievement {
 	 * @param name Player-facing name.
 	 * @param description Player-facing description.
 	 * @param requiredEnemyKills Player kills required to unlock.
+	 * @param spriteType Icon displayed for this achievement.
 	 * @param unlocked Whether the achievement is unlocked.
 	 */
 	public Achievement(final String id, final String name,
 			final String description, final int requiredEnemyKills,
-			final boolean unlocked) {
+			final SpriteType spriteType, final boolean unlocked) {
 		this.id = id;
 		this.name = name;
 		this.description = description;
 		this.requiredEnemyKills = requiredEnemyKills;
+		this.spriteType = spriteType;
 		this.unlocked = unlocked;
 	}
 
@@ -51,6 +57,11 @@ public class Achievement {
 	/** @return Player kills required to unlock. */
 	public final int getRequiredEnemyKills() {
 		return this.requiredEnemyKills;
+	}
+
+	/** @return Icon displayed for this achievement. */
+	public final SpriteType getSpriteType() {
+		return this.spriteType;
 	}
 
 	/** @return Whether this achievement is unlocked. */
