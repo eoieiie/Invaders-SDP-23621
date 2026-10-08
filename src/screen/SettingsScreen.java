@@ -91,8 +91,8 @@ public class SettingsScreen extends Screen {
 		String bgmStr = "BGM Volume: < " + bgmVolume + "% >";
 		String sfxStr = "SFX Volume: < " + sfxVolume + "% >";
 
-		String m0 = (currentMenuItem == 0 ? "-> " : "") + bgmStr;
-		String m1 = (currentMenuItem == 1 ? "-> " : "") + sfxStr;
+        String m0 = (currentMenuItem == 0 ? "> " + bgmStr + " <" : bgmStr);
+        String m1 = (currentMenuItem == 1 ? "> " + sfxStr + " <" : sfxStr);
 		String m2 = "Key Bindings";
 
 		this.drawManager.drawMenuRow(this, m0, baseY,
@@ -110,7 +110,6 @@ public class SettingsScreen extends Screen {
 				baseY + SPACING * 6, false);
 		this.drawManager.drawMenuRow(this, "- Back: ESC -",
 				baseY + SPACING * 7, false);
-
 		this.drawManager.drawKeyHints(this, "arrows adjust, esc back");
 
 		this.drawManager.completeDrawing(this);
