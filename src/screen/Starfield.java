@@ -1,5 +1,6 @@
 package screen;
 
+import java.awt.Color;
 import java.util.Random;
 
 /**
@@ -12,8 +13,9 @@ public class Starfield {
 	private static final int STAR_COUNT = 70;
 	/** Pixels per frame for the far, middle and near layers. */
 	private static final float[] LAYER_SPEED = { 0.2f, 0.4f, 0.7f };
-	/** Grey level for the far, middle and near layers. */
-	private static final int[] LAYER_BRIGHTNESS = { 90, 150, 220 };
+	/** Colour of the far, middle and near layers, made once. */
+	private static final Color[] LAYER_COLOR = { new Color(90, 90, 90),
+			new Color(150, 150, 150), new Color(220, 220, 220) };
 
 	/** Screen width the stars wrap around. */
 	private final int width;
@@ -86,10 +88,10 @@ public class Starfield {
 	/**
 	 * @param i
 	 *            Star index.
-	 * @return Grey level of the star, 0 to 255.
+	 * @return Colour of the star; nearer stars are brighter.
 	 */
-	public final int getBrightness(final int i) {
-		return LAYER_BRIGHTNESS[this.layer[i]];
+	public final Color getColor(final int i) {
+		return LAYER_COLOR[this.layer[i]];
 	}
 
 	/**

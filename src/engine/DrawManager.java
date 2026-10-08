@@ -573,9 +573,8 @@ public final class DrawManager {
 	 */
 	public void drawStarfield(final Screen screen, final Starfield starfield) {
 		for (int i = 0; i < starfield.getCount(); i++) {
-			int grey = starfield.getBrightness(i);
 			int size = starfield.getSize(i);
-			backBufferGraphics.setColor(new Color(grey, grey, grey));
+			backBufferGraphics.setColor(starfield.getColor(i));
 			backBufferGraphics.fillRect(starfield.getX(i), starfield.getY(i),
 					size, size);
 		}
