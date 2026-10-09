@@ -14,6 +14,7 @@ import java.util.logging.Logger;
 
 import screen.MenuItem;
 import screen.Screen;
+import screen.Starfield;
 import entity.Coin;
 import entity.Entity;
 import entity.Ship;
@@ -655,6 +656,24 @@ public final class DrawManager {
 		backBufferGraphics.drawString("Unlock: defeat "
 				+ achievement.getRequiredEnemyKills() + " enemies.", contentX,
 				nameY + fontRegularMetrics.getHeight() * 2);
+	}
+
+	/**
+	 * Draws the scrolling stars behind the main menu. Call it right after
+	 * initDrawing so everything else is drawn on top.
+	 *
+	 * @param screen
+	 *            Screen to draw on.
+	 * @param starfield
+	 *            Stars to draw.
+	 */
+	public void drawStarfield(final Screen screen, final Starfield starfield) {
+		for (int i = 0; i < starfield.getCount(); i++) {
+			int size = starfield.getSize(i);
+			backBufferGraphics.setColor(starfield.getColor(i));
+			backBufferGraphics.fillRect(starfield.getX(i), starfield.getY(i),
+					size, size);
+		}
 	}
 
 	/**

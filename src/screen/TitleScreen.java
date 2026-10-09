@@ -28,6 +28,8 @@ public class TitleScreen extends Screen {
 	private boolean exitConfirmYes;
 	/** Whether Escape was held during the previous update. */
 	private boolean escapeWasDown;
+	/** Stars behind the menu, kept between visits so they don't jump. */
+	private static Starfield starfield;
 	/**
 	 * Constructor, establishes the properties of the screen.
 	 * 
@@ -46,6 +48,8 @@ public class TitleScreen extends Screen {
 		this.selectionCooldown = Core.getCooldown(SELECTION_TIME);
 		this.selectionCooldown.reset();
 		this.escapeWasDown = this.inputManager.isKeyDown(KeyEvent.VK_ESCAPE);
+		if (starfield == null)
+			starfield = new Starfield(width, height);
 	}
 
 	/**
@@ -70,6 +74,7 @@ public class TitleScreen extends Screen {
 		final boolean escapePressed = escapeDown && !this.escapeWasDown;
 		this.escapeWasDown = escapeDown;
 
+		starfield.update();
 		draw();
 
 		if (!this.inputDelay.checkFinished()) {
@@ -198,6 +203,7 @@ public class TitleScreen extends Screen {
 	private void draw() {
 		drawManager.initDrawing(this);
 
+		drawManager.drawStarfield(this, starfield);
 		drawManager.drawTitle(this);
 		drawManager.drawMenu(this, this.selected);
 		drawManager.drawKeyHints(this, keyHints());
