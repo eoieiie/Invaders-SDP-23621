@@ -2,14 +2,17 @@ package screen;
 
 import java.awt.Color;
 import java.awt.event.KeyEvent;
+import java.util.ArrayList;
 import java.util.List;
 import engine.Achievement;
+import engine.AchievementManager;
 import engine.Cooldown;
 import engine.Core;
 import engine.DrawManager;
 
 /**
- * Implements the achievements screen.
+ * Implements the achievements screen, split into pages.
+ * Page 1 shows normal achievements, page 2 shows tier achievements.
  */
 public class AchievementsScreen extends Screen {
 	/** Colour of the row the player has selected. */
@@ -22,6 +25,8 @@ public class AchievementsScreen extends Screen {
 	private static final Color UNLOCKED = Color.YELLOW;
 	/** Colour of a locked achievement's icon. */
 	private static final Color LOCKED = Color.DARK_GRAY;
+	/** Vertical position of the page label. */
+	private static final int PAGE_LABEL_Y = 95;
 	/** Vertical position of the first row. */
 	private static final int FIRST_ROW_Y = 110;
 	/** Vertical distance between rows. */
@@ -34,11 +39,16 @@ public class AchievementsScreen extends Screen {
 	private static final int STATUS_X = 320;
 	/** Time between selection moves, in milliseconds. */
 	private static final int SELECTION_INTERVAL = 200;
-	/** Achievements shown on this screen. */
-	private List<Achievement> achievements;
+	/** Name of each page, in page order. */
+	private static final String[] PAGE_NAMES = { "Normal", "Tier" };
+
+	/** Achievements on each page, in page order. */
+	private List<List<Achievement>> pages;
+	/** Index of the page currently shown. */
+	private int currentPage;
 	/** Enemies defeated across all games. */
 	private int totalKills;
-	/** Index of the currently selected row. */
+	/** Index of the selected row on the current page. */
 	private int selected;
 	/** Stops the selection moving on every frame. */
 	private Cooldown selectionCooldown;
@@ -55,8 +65,12 @@ public class AchievementsScreen extends Screen {
 		super(width, height, fps);
 		// Return to the main menu when this screen closes.
 		this.returnCode = 1;
-		this.achievements = Core.getAchievementManager().getAchievements();
-		this.totalKills = Core.getAchievementManager().getTotalEnemiesKilled();
+		AchievementManager manager = Core.getAchievementManager();
+		this.pages = new ArrayList<List<Achievement>>();
+		this.pages.add(manager.getNormalAchievements());
+		this.pages.add(manager.getTierAchievements());
+		this.totalKills = manager.getTotalEnemiesKilled();
+		this.currentPage = 0;
 		this.selected = 0;
 		this.selectionCooldown = Core.getCooldown(SELECTION_INTERVAL);
 		this.selectionCooldown.reset();
@@ -74,8 +88,6 @@ public class AchievementsScreen extends Screen {
 	}
 
 	/**
-	 * PR 2 — Achievements screen layout: step by step
-	 * Page 4 of 12
 	 * Draws the screen and checks for keyboard input.
 	 */
 	@Override
@@ -85,19 +97,32 @@ public class AchievementsScreen extends Screen {
 		if (this.inputDelay.checkFinished()
 				&& this.selectionCooldown.checkFinished()) {
 			if (this.inputManager.isKeyDown(KeyEvent.VK_UP)
-					||
-					this.inputManager.isKeyDown(KeyEvent.VK_W)) {
+					|| this.inputManager.isKeyDown(KeyEvent.VK_W)) {
 				if (this.selected > 0) {
 					this.selected--;
 					this.selectionCooldown.reset();
 				}
 			}
 			if (this.inputManager.isKeyDown(KeyEvent.VK_DOWN)
-					||
-					this.inputManager.isKeyDown(KeyEvent.VK_S)) {
-				if (this.selected < this.achievements.size()
-						- 1) {
+					|| this.inputManager.isKeyDown(KeyEvent.VK_S)) {
+				if (this.selected < getRowCount() - 1) {
 					this.selected++;
+					this.selectionCooldown.reset();
+				}
+			}
+			if (this.inputManager.isKeyDown(KeyEvent.VK_LEFT)
+					|| this.inputManager.isKeyDown(KeyEvent.VK_A)) {
+				if (this.currentPage > 0) {
+					this.currentPage--;
+					this.selected = 0;
+					this.selectionCooldown.reset();
+				}
+			}
+			if (this.inputManager.isKeyDown(KeyEvent.VK_RIGHT)
+					|| this.inputManager.isKeyDown(KeyEvent.VK_D)) {
+				if (this.currentPage < this.pages.size() - 1) {
+					this.currentPage++;
+					this.selected = 0;
 					this.selectionCooldown.reset();
 				}
 			}
@@ -109,16 +134,39 @@ public class AchievementsScreen extends Screen {
 	}
 
 	/**
-	 * Draws the title, one row per achievement, and the key hints.
+	 * @return Number of rows shown on the current page, at most
+	 *         {@link AchievementManager#ACHIEVEMENTS_PER_PAGE}.
+	 */
+	private int getRowCount() {
+		return Math.min(this.pages.get(this.currentPage).size(),
+				AchievementManager.ACHIEVEMENTS_PER_PAGE);
+	}
+
+	/**
+	 * Draws the title, the page label, the current page's rows, and the
+	 * key hints.
 	 */
 	private void draw() {
 		this.drawManager.initDrawing(this);
 		this.drawManager.drawScreenTitle(
 				this, MenuItem.ACHIEVEMENTS.getTitle());
-		for (int i = 0; i < this.achievements.size(); i++)
-			drawAchievement(this.achievements.get(i),
-					FIRST_ROW_Y + i * ROW_SPACING, i == this.selected);
-		this.drawManager.drawKeyHints(this, "up down move, esc back");
+
+		String pageLabel = "< " + PAGE_NAMES[this.currentPage] + "  "
+				+ (this.currentPage + 1) + "/" + this.pages.size() + " >";
+		this.drawManager.drawMenuRow(this, pageLabel, PAGE_LABEL_Y, false);
+
+		List<Achievement> page = this.pages.get(this.currentPage);
+		if (page.isEmpty()) {
+			this.drawManager.drawRegularString("No achievements yet.",
+					TEXT_X, FIRST_ROW_Y + 24, MUTED);
+		} else {
+			for (int i = 0; i < getRowCount(); i++)
+				drawAchievement(page.get(i),
+						FIRST_ROW_Y + i * ROW_SPACING, i == this.selected);
+		}
+
+		this.drawManager.drawKeyHints(this,
+				"left right page, up down move, esc back");
 		this.drawManager.completeDrawing(this);
 	}
 
@@ -141,8 +189,10 @@ public class AchievementsScreen extends Screen {
 			nameColor = SELECTED;
 		else
 			nameColor = UNSELECTED;
-		this.drawManager.drawSprite(DrawManager.SpriteType.FirstFlight,
-				TROPHY_X, positionY, trophyColor);
+		DrawManager.SpriteType icon = achievement.getSpriteType();
+		if (icon == null)
+			icon = DrawManager.SpriteType.FirstFlight;
+		this.drawManager.drawSprite(icon, TROPHY_X, positionY, trophyColor);
 		this.drawManager.drawRegularString(achievement.getName(),
 				TEXT_X, positionY + 8, nameColor);
 		this.drawManager.drawRegularString("Unlock: defeat "
