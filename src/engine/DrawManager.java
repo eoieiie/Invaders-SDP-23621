@@ -561,22 +561,21 @@ public final class DrawManager {
 		String noString = "No";
 
 		int spacing = menuItemSpacing();
-		int boxWidth = screen.getWidth() / 2;
-		int boxHeight = spacing * 4;
-		int boxX = (screen.getWidth() - boxWidth) / 2;
-		int boxY = (screen.getHeight() - boxHeight) / 2;
+		int boxWidth = exitConfirmBoxWidth(screen);
+		int boxX = exitConfirmBoxX(screen);
+		int boxY = exitConfirmBoxY(screen);
 
 		backBufferGraphics.setColor(Color.BLACK);
-		backBufferGraphics.fillRect(boxX, boxY, boxWidth, boxHeight);
+		backBufferGraphics.fillRect(boxX, boxY, boxWidth, spacing * 4);
 		backBufferGraphics.setColor(Color.GRAY);
-		backBufferGraphics.drawRect(boxX, boxY, boxWidth, boxHeight);
+		backBufferGraphics.drawRect(boxX, boxY, boxWidth, spacing * 4);
 
 		backBufferGraphics.setColor(Color.WHITE);
 		drawCenteredRegularString(screen, question, boxY + spacing * 3 / 2);
 
 		// Yes and No sit either side of the centre, so they need their own
 		// x positions rather than the centred helper.
-		int answerY = boxY + spacing * 3;
+		int answerY = exitConfirmAnswerBaseline(screen);
 		int yesX = screen.getWidth() / 2 - boxWidth / 4
 				- fontRegularMetrics.stringWidth(yesString) / 2;
 		int noX = screen.getWidth() / 2 + boxWidth / 4
@@ -587,6 +586,82 @@ public final class DrawManager {
 		backBufferGraphics.drawString(yesString, yesX, answerY);
 		backBufferGraphics.setColor(yesSelected ? Color.WHITE : Color.GREEN);
 		backBufferGraphics.drawString(noString, noX, answerY);
+	}
+
+	/**
+	 * Finds the answer the exit confirmation offers at a given point. Each
+	 * answer owns half the width of the box on the answer row, so the whole
+	 * half is clickable, not just the text.
+	 *
+	 * @param screen
+	 *            Screen the confirmation is drawn on.
+	 * @param positionX
+	 *            Horizontal position to check, in screen coordinates.
+	 * @param positionY
+	 *            Height to check, in screen coordinates.
+	 * @return True for Yes, false for No, or null when the point is outside
+	 *         the answer row or nothing has been drawn yet.
+	 */
+	public Boolean exitConfirmAnswerAt(final Screen screen,
+			final int positionX, final int positionY) {
+		if (fontRegularMetrics == null)
+			return null;
+		int spacing = menuItemSpacing();
+		int top = exitConfirmAnswerBaseline(screen)
+				- fontRegularMetrics.getAscent()
+				- (spacing - fontRegularMetrics.getHeight()) / 2;
+		if (positionY < top || positionY >= top + spacing)
+			return null;
+		int boxX = exitConfirmBoxX(screen);
+		if (positionX < boxX
+				|| positionX >= boxX + exitConfirmBoxWidth(screen))
+			return null;
+		return positionX < screen.getWidth() / 2;
+	}
+
+	/**
+	 * Width of the exit confirmation box. Drawing and hit-testing both use
+	 * this, so they cannot drift apart.
+	 *
+	 * @param screen
+	 *            Screen the confirmation is drawn on.
+	 * @return Width of the box, in pixels.
+	 */
+	private int exitConfirmBoxWidth(final Screen screen) {
+		return screen.getWidth() / 2;
+	}
+
+	/**
+	 * Left edge of the exit confirmation box.
+	 *
+	 * @param screen
+	 *            Screen the confirmation is drawn on.
+	 * @return X coordinate of the left edge.
+	 */
+	private int exitConfirmBoxX(final Screen screen) {
+		return (screen.getWidth() - exitConfirmBoxWidth(screen)) / 2;
+	}
+
+	/**
+	 * Top edge of the exit confirmation box.
+	 *
+	 * @param screen
+	 *            Screen the confirmation is drawn on.
+	 * @return Y coordinate of the top edge.
+	 */
+	private int exitConfirmBoxY(final Screen screen) {
+		return (screen.getHeight() - menuItemSpacing() * 4) / 2;
+	}
+
+	/**
+	 * Baseline of the row the Yes and No answers sit on.
+	 *
+	 * @param screen
+	 *            Screen the confirmation is drawn on.
+	 * @return Baseline of the answer row.
+	 */
+	private int exitConfirmAnswerBaseline(final Screen screen) {
+		return exitConfirmBoxY(screen) + menuItemSpacing() * 3;
 	}
 
 	/**
