@@ -99,11 +99,19 @@ public class TitleScreen extends Screen {
 			}
 		}
 
-		if (inputManager.isMouseMoved() && !this.showingExitConfirm) {
-			MenuItem item = drawManager.menuItemAt(this,
-					inputManager.getMouseY());
-			if (item != null) {
-				this.selected = item;
+		if (inputManager.isMouseMoved()) {
+			if (this.showingExitConfirm) {
+				final Boolean answer = drawManager.exitConfirmAnswerAt(this,
+						inputManager.getMouseX(), inputManager.getMouseY());
+				if (answer != null) {
+					this.exitConfirmYes = answer;
+				}
+			} else {
+				MenuItem item = drawManager.menuItemAt(this,
+						inputManager.getMouseY());
+				if (item != null) {
+					this.selected = item;
+				}
 			}
 		}
 
@@ -150,13 +158,29 @@ public class TitleScreen extends Screen {
 			this.selectionCooldown.reset();
 		}
 		if (inputManager.isKeyDown(KeyEvent.VK_SPACE)
-				|| inputManager.isKeyDown(KeyEvent.VK_ENTER)) {
-			if (this.exitConfirmYes) {
-				this.returnCode = MenuItem.EXIT.getCode();
-				this.isRunning = false;
-			} else
-				closeExitConfirm();
+				|| inputManager.isKeyDown(KeyEvent.VK_ENTER))
+			answerExitConfirm();
+
+		if (inputManager.isMousePressed()) {
+			final Boolean answer = drawManager.exitConfirmAnswerAt(this,
+					inputManager.getMouseX(), inputManager.getMouseY());
+			if (answer != null) {
+				this.exitConfirmYes = answer;
+				answerExitConfirm();
+			}
 		}
+	}
+
+	/**
+	 * Acts on the answer the cursor is on. Every way of answering - Space,
+	 * Enter or a mouse click - goes through here.
+	 */
+	private void answerExitConfirm() {
+		if (this.exitConfirmYes) {
+			this.returnCode = MenuItem.EXIT.getCode();
+			this.isRunning = false;
+		} else
+			closeExitConfirm();
 	}
 
 	/**
