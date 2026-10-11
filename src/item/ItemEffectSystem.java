@@ -45,7 +45,9 @@ class ItemEffectSystem {
      * Applies synchronously and returns Applied. All foreseeable checks run before success.
      * LIFE: calls port.tryAddLife() once; true → ok(null), false → failed(EFFECT_REJECTED).
      * SHIELD: keeps durationMillis/charges; using one while active restarts both. RAPID_FIRE/BULLET_SPEED: run-wide stacks (up to maxStacks).
-     * FREEZE: blocks movement for durationMillis. None of them change the ship's base stats directly.
+     * FREEZE: blocks movement for durationMillis. BOOST/SCORE_BOOST add temporary bonuses derived from base stats.
+     * Using another boost or score boost while the same kind is active restarts its time, like the shield.
+     * None of the effects change the ship's base stats directly.
      * A successful lasting effect returns an EffectView with a new effectId, registered before returning.
      * A rejection changes nothing, refreshes no time and consumes no ID. MANUAL items can also be triggered here via useSlot.
      * Input/catalog/coding errors are not hidden as normal rejections. No re-entering the manager via the port or other callbacks.
@@ -64,12 +66,12 @@ class ItemEffectSystem {
             return Applied.ok(existing.view());
         }
         if (existing != null && existing.refreshable()) {
-            existing.refresh(); // Same effectId, duration and charges back to full.
+            existing.refresh(activeExtraMillis(item)); // Same effectId, duration and charges back to full.
             return Applied.ok(existing.view());
         }
         if (existing != null) return Applied.failed(GrantFailure.EFFECT_ALREADY_ACTIVE);
 
-        RunningEffect effect = new RunningEffect(nextEffectId++, item);
+        RunningEffect effect = new RunningEffect(nextEffectId++, item, activeExtraMillis(item));
         running.put(effect.effectId, effect); // Returns the View only after registering the source.
         return Applied.ok(effect.view());
     }
@@ -112,12 +114,14 @@ class ItemEffectSystem {
     }
 
     /**
-     * Always computes current effects starting from 0/0/false. At most one effect per kind exists.
+     * Always computes current effects from zero bonuses, unit multipliers and no movement block.
+     * At most one effect per kind exists. Temporary BOOST does not multiply run-wide stacking bonuses.
      * Stacking bonus = magnitude * log2(1 + stacks): 1 stack 1x, 2 about 1.58x, 3 2x, 7 3x.
      */
     Modifiers modifiers() {
         double fireRate = 0.0;
         double bulletSpeed = 0.0;
+        double movementSpeedMultiplier = 1.0, fireRateMultiplier = 1.0, scoreMultiplier = 1.0;
         boolean movementBlocked = false;
         for (RunningEffect effect : running.values()) {
             switch (effect.item.effectKind) {
@@ -130,11 +134,19 @@ class ItemEffectSystem {
                 case FREEZE:
                     movementBlocked = true;
                     break;
+                case BOOST:
+                    movementSpeedMultiplier = effect.item.magnitude;
+                    fireRateMultiplier = effect.item.magnitude;
+                    break;
+                case SCORE_BOOST:
+                    scoreMultiplier = effect.item.magnitude;
+                    break;
                 default:
                     break; // The shield works by charges and does not affect stats.
             }
         }
-        return new Modifiers(fireRate, bulletSpeed, movementBlocked);
+        return new Modifiers(fireRate, bulletSpeed, movementBlocked,
+            movementSpeedMultiplier, fireRateMultiplier, scoreMultiplier);
     }
 
     /** itemId → current stack count. Used to lower drop chances. */
@@ -152,13 +164,13 @@ class ItemEffectSystem {
         return Collections.unmodifiableList(views);
     }
 
-    /** Removes stage effects and returns Ended(LEVEL_ENDED) for each. Run-wide stacking effects and IDs are kept. */
+    /** Removes stage effects and returns Ended(LEVEL_ENDED) for each. Run-wide stacking and equipped effects and IDs are kept. */
     List<Ended> clear() {
         List<Ended> ended = new ArrayList<Ended>(running.size());
         Iterator<RunningEffect> iterator = running.values().iterator();
         while (iterator.hasNext()) {
             RunningEffect effect = iterator.next();
-            if (effect.stackable()) continue;
+            if (effect.stackable() || effect.equipped()) continue; // run-wide effects stay
             ended.add(new Ended(effect.item.itemId, effect.effectId, EffectEndReason.LEVEL_ENDED));
             iterator.remove();
         }
@@ -167,6 +179,13 @@ class ItemEffectSystem {
 
     private static double stackedBonus(RunningEffect effect) {
         return effect.item.magnitude * Math.log(1 + effect.stacks) / Math.log(2);
+    }
+
+    /** Extra time for a timed active (MANUAL) item while Long Lasting is equipped, otherwise 0. */
+    private long activeExtraMillis(ItemInfo item) {
+        if (item.activationMode != ActivationMode.MANUAL || item.durationKind != DurationKind.TIMED) return 0;
+        RunningEffect longLasting = findByKind(EffectKind.LONG_LASTING);
+        return longLasting == null ? 0 : longLasting.item.magnitude.longValue();
     }
 
     private RunningEffect findByKind(EffectKind kind) {
@@ -183,9 +202,20 @@ class ItemEffectSystem {
             case FREEZE:
                 expect(item, DurationKind.TIMED, item.durationMillis != null);
                 break;
+            case BOOST:
+            case SCORE_BOOST:
+                expect(item, DurationKind.TIMED, item.durationMillis != null
+                    && item.magnitude != null && item.magnitude > 1.0);
+                break;
             case RAPID_FIRE:
             case BULLET_SPEED:
                 expect(item, DurationKind.UNTIL_RUN_END, item.magnitude != null && item.maxStacks != null);
+                break;
+            case EXTRA_SLOTS:
+            case MAGNET:
+            case MAX_LIFE:
+            case LONG_LASTING:
+                expect(item, DurationKind.WHILE_EQUIPPED, item.magnitude != null);
                 break;
             default:
                 throw new IllegalStateException("unsupported effect kind: " + item.effectKind);
@@ -207,20 +237,24 @@ class ItemEffectSystem {
         /** Stack count of a stacking (UNTIL_RUN_END) effect. 0 otherwise. */
         int stacks;
 
-        RunningEffect(long effectId, ItemInfo item) {
+        RunningEffect(long effectId, ItemInfo item, long extraMillis) {
             this.effectId = effectId; this.item = item;
-            refresh();
+            refresh(extraMillis);
             stacks = stackable() ? 1 : 0;
         }
-        /** Sets the remaining time and charges to the item's full values. */
-        void refresh() {
-            remainingMillis = item.durationKind == DurationKind.TIMED ? item.durationMillis : 0;
+        /** Sets the remaining time (plus extraMillis) and charges to the item's full values. */
+        void refresh(long extraMillis) {
+            remainingMillis = item.durationKind == DurationKind.TIMED ? item.durationMillis + extraMillis : 0;
             remainingCharges = item.effectKind == EffectKind.SHIELD ? item.charges : null;
         }
         boolean timed() { return item.durationKind == DurationKind.TIMED; }
         boolean stackable() { return item.durationKind == DurationKind.UNTIL_RUN_END; }
-        /** Using another one while active restarts it instead of being rejected (shield). */
-        boolean refreshable() { return item.effectKind == EffectKind.SHIELD; }
+        boolean equipped() { return item.durationKind == DurationKind.WHILE_EQUIPPED; }
+        /** Using another one while active restarts it instead of being rejected (shield, boost, score boost). */
+        boolean refreshable() {
+            return item.effectKind == EffectKind.SHIELD || item.effectKind == EffectKind.BOOST
+                || item.effectKind == EffectKind.SCORE_BOOST;
+        }
         EffectView view() {
             return new EffectView(effectId, item, timed() ? Long.valueOf(remainingMillis) : null,
                 remainingCharges, stackable() ? Integer.valueOf(stacks) : null);

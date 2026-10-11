@@ -107,6 +107,93 @@ class ItemDefinitions {
         );
         definitions.put(freeze.itemId, freeze);
 
+        ItemInfo boost = new ItemInfo(
+            "boost", "Boost",
+            "Adds " + percent(balance.boostMultiplier)
+                + "% of base ship speed and fire rate for " + seconds(balance.boostDurationMillis) + " seconds.",
+            "boost", ActivationMode.MANUAL, EffectKind.BOOST, DurationKind.TIMED,
+            balance.boostDurationMillis, null, balance.boostMultiplier, null,
+            EnumSet.of(GrantTiming.NOW)
+        );
+        definitions.put(boost.itemId, boost);
+
+        ItemInfo scoreBoost = new ItemInfo(
+            "score_boost", "Score Boost",
+            "Adds " + percent(balance.scoreBoostMultiplier)
+                + "% of base earned score for " + seconds(balance.scoreBoostDurationMillis) + " seconds.",
+            "score_boost", ActivationMode.MANUAL, EffectKind.SCORE_BOOST, DurationKind.TIMED,
+            balance.scoreBoostDurationMillis, null, balance.scoreBoostMultiplier, null,
+            EnumSet.of(GrantTiming.NOW)
+        );
+        definitions.put(scoreBoost.itemId, scoreBoost);
+
+        ItemInfo extraSlots = new ItemInfo(
+            "extra_slots",
+            "Extra Slots",
+            "Equip: +" + balance.extraSlotsAmount + " inventory slot(s) in every run.",
+            "extra_slots",
+            ActivationMode.EQUIPPED,
+            EffectKind.EXTRA_SLOTS,
+            DurationKind.WHILE_EQUIPPED,
+            null,
+            null,
+            (double) balance.extraSlotsAmount,
+            null,
+            EnumSet.of(GrantTiming.NOW)
+        );
+        definitions.put(extraSlots.itemId, extraSlots);
+
+        ItemInfo magnet = new ItemInfo(
+            "magnet",
+            "Magnet",
+            "Equip: picks up items as soon as they land. A drop it cannot keep gives "
+                + balance.magnetConvertScore + " points instead.",
+            "magnet",
+            ActivationMode.EQUIPPED,
+            EffectKind.MAGNET,
+            DurationKind.WHILE_EQUIPPED,
+            null,
+            null,
+            (double) balance.magnetConvertScore,
+            null,
+            EnumSet.of(GrantTiming.NOW)
+        );
+        definitions.put(magnet.itemId, magnet);
+
+        ItemInfo maxLife = new ItemInfo(
+            "max_life",
+            "Max Life",
+            "Equip: the life item can raise lives up to " + (balance.maxLives + balance.maxLifeAmount)
+                + " instead of " + balance.maxLives + ".",
+            "max_life",
+            ActivationMode.EQUIPPED,
+            EffectKind.MAX_LIFE,
+            DurationKind.WHILE_EQUIPPED,
+            null,
+            null,
+            (double) balance.maxLifeAmount,
+            null,
+            EnumSet.of(GrantTiming.NOW)
+        );
+        definitions.put(maxLife.itemId, maxLife);
+
+        ItemInfo longLasting = new ItemInfo(
+            "long_lasting",
+            "Long Lasting",
+            "Equip: active items (shield, freeze, boost, score boost) last "
+                + seconds(balance.longLastingExtraMillis) + " seconds longer.",
+            "long_lasting",
+            ActivationMode.EQUIPPED,
+            EffectKind.LONG_LASTING,
+            DurationKind.WHILE_EQUIPPED,
+            null,
+            null,
+            (double) balance.longLastingExtraMillis,
+            null,
+            EnumSet.of(GrantTiming.NOW)
+        );
+        definitions.put(longLasting.itemId, longLasting);
+
         itemsById = Collections.unmodifiableMap(definitions);
         items = Collections.unmodifiableList(new ArrayList<ItemInfo>(definitions.values()));
         validateDefinitions();
@@ -115,7 +202,10 @@ class ItemDefinitions {
     /**
      * Looks up a registered ID. Returns null only for a valid but unknown ID. The list is immutable for a run.
      * Registered by default: life (instant, +1 life), shield (manual, time/charges), rapid_fire (on pickup, stacks for the run),
-     * bullet_speed (on pickup, stacks for the run), freeze (manual, blocks enemy movement for a time).
+     * bullet_speed (on pickup, stacks for the run), freeze (manual, blocks enemy movement for a time),
+     * boost (manual, temporary extra ship speed/fire rate), score_boost (manual, temporary extra earned score),
+     * extra_slots / magnet / max_life / long_lasting (owned and equipped outside a run, work in every run while equipped; never dropped).
+     * boost / score_boost drop from enemies like the other items (drop.weight.boost / drop.weight.scoreBoost).
      * All support NOW. Only rapid_fire/bullet_speed support NEXT_LEVEL. Values come from ItemBalance (config file).
      */
     ItemInfo find(String itemId) { return itemsById.get(itemId); }
@@ -126,10 +216,11 @@ class ItemDefinitions {
     /**
      * Validates all definitions/rules without changing state.
      * Checks both DropSource rules, existing IDs, a positive finite weight sum (when p>0), and the configured area.
-     * Also checks each definition's kind/duration/value combination. Duplicate effects of the same kind are REJECTed, except SHIELD, which restarts.
+     * Also checks each definition's kind/duration/value combination. Duplicate effects of the same kind are REJECTed, except SHIELD/BOOST/SCORE_BOOST, which restart.
      * NEXT_LEVEL is allowed only for RAPID_FIRE/BULLET_SPEED with ON_PICKUP + UNTIL_RUN_END.
-     * LIFE is fixed to INSTANT, SHIELD/FREEZE to TIMED, and the two stacking effects to UNTIL_RUN_END.
-     * SHIELD requires durationMillis/charges, FREEZE requires durationMillis, the two stacking effects require magnitude/maxStacks.
+     * LIFE is fixed to INSTANT, active items to TIMED, and the two stacking effects to UNTIL_RUN_END.
+     * SHIELD requires durationMillis/charges, FREEZE requires durationMillis, BOOST/SCORE_BOOST require durationMillis/magnitude>1,
+     * and the two stacking effects require magnitude/maxStacks.
      * Unsupported combinations throw. Invalid settings are never auto-corrected and the game does not start with them.
      */
     void validate(LevelRules rules) {
@@ -144,6 +235,8 @@ class ItemDefinitions {
             for (Map.Entry<String, Double> entry : rule.weights.entrySet()) {
                 requireValid(itemsById.containsKey(entry.getKey()),
                     "unknown item ID: " + entry.getKey());
+                requireValid(itemsById.get(entry.getKey()).activationMode != ActivationMode.EQUIPPED,
+                    "equipped items are not dropped: " + entry.getKey());
                 double weight = entry.getValue();
                 ItemAPI.finite(weight, "weight");
                 requireValid(weight >= 0.0, "weight must not be negative: " + entry.getKey());
@@ -193,6 +286,21 @@ class ItemDefinitions {
                         && item.charges == null && item.magnitude == null && item.maxStacks == null
                         && item.supportedGrantTimings.equals(EnumSet.of(GrantTiming.NOW)));
                     break;
+                case BOOST:
+                case SCORE_BOOST:
+                    requireDefinition(item, item.activationMode == ActivationMode.MANUAL
+                        && item.durationKind == DurationKind.TIMED
+                        && item.durationMillis != null
+                        && item.charges == null && item.magnitude != null && item.magnitude > 1.0
+                        && item.maxStacks == null
+                        && item.supportedGrantTimings.equals(EnumSet.of(GrantTiming.NOW)));
+                    break;
+                case EXTRA_SLOTS:
+                case MAGNET:
+                case MAX_LIFE:
+                case LONG_LASTING:
+                    requireDefinition(item, isEquipped(item));
+                    break;
                 default:
                     throw new IllegalArgumentException("unsupported effect kind: " + item.effectKind);
             }
@@ -208,6 +316,21 @@ class ItemDefinitions {
             && item.magnitude != null && item.maxStacks != null
             && item.supportedGrantTimings.equals(
                 EnumSet.of(GrantTiming.NOW, GrantTiming.NEXT_LEVEL));
+    }
+
+    /** Equipped items: EQUIPPED + WHILE_EQUIPPED, one value in magnitude, never dropped or stacked. */
+    private boolean isEquipped(ItemInfo item) {
+        return item.activationMode == ActivationMode.EQUIPPED
+            && item.durationKind == DurationKind.WHILE_EQUIPPED
+            && item.durationMillis == null && item.charges == null
+            && item.magnitude != null && item.maxStacks == null
+            && item.supportedGrantTimings.equals(EnumSet.of(GrantTiming.NOW));
+    }
+
+    /** Extra share of a multiplier as a percent without trailing zeros: 1.5 -> "50". */
+    private static String percent(double multiplier) {
+        return new java.math.BigDecimal(Double.toString((multiplier - 1.0) * 100))
+            .setScale(1, java.math.RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();
     }
 
     private static String seconds(long millis) {
