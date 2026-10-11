@@ -1,0 +1,64 @@
+name: Release
+
+# Builds a runnable jar on every merge to main and publishes it as the
+# "latest" release. Anyone can then download one file and run the game with
+# `java -jar Invaders.jar`, without cloning or compiling. That is what we hand
+# over in week 9, and it lets a reviewer try main without building it.
+#
+# res/font.ttf is gitignored, so CI does not have it and the jar draws text in
+# a default monospaced font until an openly licensed font is committed.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: true
+
+jobs:
+  jar:
+    # Only in our fork. Upstream would otherwise publish its own releases.
+    if: github.repository == 'eoieiie/Invaders-SDP-23621'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Build the jar
+        run: |
+          mkdir -p bin
+          javac -d bin $(find src -name '*.java')
+          cp -R res/. bin/
+          jar --create --file Invaders.jar --main-class engine.Core -C bin .
+
+      # Same check as the smoke job, but on the jar itself, so a broken
+      # package never gets published.
+      - name: Check the jar starts
+        run: |
+          sudo apt-get update -q && sudo apt-get install -y -q xvfb
+          xvfb-run -a timeout 10 java -jar Invaders.jar > game.log 2>&1 || true
+          cat game.log
+          if grep -q "Exception" game.log || ! grep -q "title screen" game.log; then
+            echo "::error::The jar did not reach the title screen cleanly."
+            exit 1
+          fi
+
+      - name: Publish as the latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest --yes --cleanup-tag || true
+          gh release create latest Invaders.jar \
+            --target "$GITHUB_SHA" \
+            --prerelease \
+            --title "Latest build from main" \
+            --notes "Built from ${GITHUB_SHA::7}. Download Invaders.jar and run: java -jar Invaders.jar (Java 17 or newer). High scores are saved next to the jar. Text uses a default font until the project font is committed."
