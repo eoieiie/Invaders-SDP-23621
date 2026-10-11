@@ -21,6 +21,8 @@ public final class InputManager implements KeyListener, MouseMotionListener, Mou
 	private static boolean[] keys;
 	/** Singleton instance of the class. */
 	private static InputManager instance;
+	/** Current mouse X position. */
+	private int mouseX;
 	/** Current mouse Y position. */
 	private int mouseY;
 	/** Whether the mouse has moved since the last check. */
@@ -93,6 +95,15 @@ public final class InputManager implements KeyListener, MouseMotionListener, Mou
 	}
 
 	/**
+	 * Returns the current mouse X position.
+	 *
+	 * @return Current mouse X position.
+	 */
+	public int getMouseX() {
+		return mouseX;
+	}
+
+	/**
 	 * Returns the current mouse Y position.
 	 *
 	 * @return Current mouse Y position.
@@ -111,14 +122,14 @@ public final class InputManager implements KeyListener, MouseMotionListener, Mou
 	}
 
 	/**
-	 * Updates the mouse Y position and records mouse movement.
-	 *
+	 * Updates the mouse position and records mouse movement.
+	 * 
 	 * @param e
 	 * 			Mouse movement event.
 	 */
 	@Override
 	public void mouseMoved(final MouseEvent e) {
-
+		mouseX = e.getX();
 		mouseY = e.getY();
 		isMoved = true;
 
@@ -158,6 +169,8 @@ public final class InputManager implements KeyListener, MouseMotionListener, Mou
 	 */
 	@Override
 	public void mousePressed(final MouseEvent e) {
+		mouseX = e.getX();
+		mouseY = e.getY();
 		isClick = true;
 	}
 	/**
