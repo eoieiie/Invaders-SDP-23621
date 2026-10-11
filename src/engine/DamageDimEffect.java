@@ -56,7 +56,7 @@ public class DamageDimEffect implements GameEvents.Listener {
         this.active = false;
     }
 
-    
+
    /** Starts the effect at full strength. */
     public void trigger() {
         trigger(1f);
@@ -77,7 +77,7 @@ public class DamageDimEffect implements GameEvents.Listener {
     public void reset() {
         this.active = false;
 
-        
+
     }
     /**
      * Reacts to PLAYER_HIT.

@@ -33,6 +33,8 @@ public final class ItemManager {
     private PlayerSnapshot player;
     /** Told about every event as it happens (logging/UI). The event queue is unaffected. */
     private Consumer<ItemEvent> listener;
+    /** Whether this run's equipped item is the magnet. Fixed by equip() before the first level. */
+    private boolean magnetEquipped;
 
     /** Sets the run's inventory capacity and drop random source. Does not start a stage yet. */
     public ItemManager(int capacity, Random random) {
@@ -107,6 +109,8 @@ public final class ItemManager {
         ItemInfo item = definitions.find(request.itemId);
         if (item == null) return GrantFailure.UNKNOWN_ITEM;
         if (!item.supportedGrantTimings.contains(request.timing)) return GrantFailure.TIMING_NOT_SUPPORTED;
+        // Equipped items are bought and equipped through ItemSystem, never granted into a run.
+        if (item.activationMode == ActivationMode.EQUIPPED) return GrantFailure.TIMING_NOT_SUPPORTED;
         if (request.timing == GrantTiming.NEXT_LEVEL) {
             if (!supportsNextLevel(item)) return GrantFailure.TIMING_NOT_SUPPORTED;
             if (active) return GrantFailure.INVALID_PHASE;
@@ -161,14 +165,23 @@ public final class ItemManager {
         // Handles expiry for the elapsed time first, then applies effects gained in this update.
         for (ItemEffectSystem.Ended ended : effects.advance(delta)) emitEnded(ended);
         player = currentPlayer;
-        ItemDropSystem.Frame frame = drops.advance(delta, currentPlayer);
+        ItemDropSystem.Frame frame = drops.advance(delta, currentPlayer, magnetEquipped);
         for (DropView expired : frame.expired)
             emit(EventType.ITEM_EXPIRED, expired.item.itemId, expired.dropId,
                 null, null, null, null, null, null, expired.bounds);
         if (!currentPlayer.canPickup) return;
         for (DropView contact : frame.contacts) {
             Acquisition acquired = acquire(contact.item);
-            if (acquired.failure != null) continue;
+            if (acquired.failure != null) {
+                // The magnet takes a landed drop it cannot keep (full inventory, max stacks, ...)
+                // and reports it as converted; ItemSystem turns that into score.
+                if (magnetEquipped && contact.grounded) {
+                    drops.completePickup(contact.dropId);
+                    emit(EventType.ITEM_CONVERTED, contact.item.itemId, contact.dropId,
+                        null, null, null, null, null, null, contact.bounds);
+                }
+                continue;
+            }
             // The DropSystem contract guarantees contacts stay valid during the same serial call.
             drops.completePickup(contact.dropId);
             emit(EventType.ITEM_COLLECTED, contact.item.itemId, contact.dropId,
@@ -287,4 +300,15 @@ public final class ItemManager {
 
     /** Sets the listener told about every new event. The listener must not call back into the manager. */
     void setEventListener(Consumer<ItemEvent> eventListener) { listener = eventListener; }
+
+    /** Applies the run's equipped item as a run-wide effect. Called once, before the first level. */
+    void equip(ItemInfo item) {
+        ItemAPI.required(item, "item");
+        if (item.activationMode != ActivationMode.EQUIPPED)
+            throw new IllegalArgumentException("not an equipped item: " + item.itemId);
+        if (active) throw new IllegalStateException("equip before the first level");
+        ItemEffectSystem.Applied applied = effects.apply(item, null);
+        if (applied.failure != null) throw new IllegalStateException("cannot equip " + item.itemId);
+        magnetEquipped = item.effectKind == EffectKind.MAGNET;
+    }
 }

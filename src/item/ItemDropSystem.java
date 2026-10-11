@@ -120,7 +120,13 @@ class ItemDropSystem {
      * During the same serial update, contacts are not changed/removed except by completePickup.
      * The manager decides pickup and effect application. No storing, consuming or event publishing here.
      */
-    Frame advance(long delta, PlayerSnapshot player) {
+    Frame advance(long delta, PlayerSnapshot player) { return advance(delta, player, false); }
+
+    /**
+     * Same as advance(delta, player). With collectLanded (magnet), a landed drop is also a contact
+     * while the player can pick up, wherever the player is.
+     */
+    Frame advance(long delta, PlayerSnapshot player, boolean collectLanded) {
         requireActive();
         if (delta < 0) throw new IllegalArgumentException("negative delta");
         ItemAPI.required(player, "player");
@@ -152,11 +158,11 @@ class ItemDropSystem {
                 continue;
             }
             Bounds playerBounds = player.bounds;
-            if (player.canPickup
-                    && item.x <= playerBounds.x + playerBounds.width
+            boolean touching = item.x <= playerBounds.x + playerBounds.width
                     && item.x + rules.pickupWidth >= playerBounds.x
                     && previousY <= playerBounds.y + playerBounds.height
-                    && item.y + rules.pickupHeight >= playerBounds.y) {
+                    && item.y + rules.pickupHeight >= playerBounds.y;
+            if (player.canPickup && (touching || (collectLanded && item.grounded))) {
                 contacts.add(view);
             }
         }

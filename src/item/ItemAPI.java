@@ -43,10 +43,19 @@ public final class ItemAPI {
         boolean tryAddLife();
     }
 
-    public enum ActivationMode { ON_PICKUP, MANUAL }
-    public enum EffectKind { LIFE, SHIELD, RAPID_FIRE, BULLET_SPEED, FREEZE }
-    /** UNTIL_RUN_END: lasts for the whole run and stacks when picked up again (rapid fire, bullet speed). */
-    public enum DurationKind { INSTANT, TIMED, UNTIL_LEVEL_END, UNTIL_RUN_END }
+    /**
+     * ON_PICKUP: works when picked up (passive). MANUAL: stored in a slot and used with a key (active).
+     * EQUIPPED: owned and equipped outside a run (at most one); works for every run while equipped.
+     */
+    public enum ActivationMode { ON_PICKUP, MANUAL, EQUIPPED }
+    public enum EffectKind {
+        LIFE, SHIELD, RAPID_FIRE, BULLET_SPEED, FREEZE, BOOST, SCORE_BOOST, EXTRA_SLOTS, MAGNET, MAX_LIFE, LONG_LASTING
+    }
+    /**
+     * UNTIL_RUN_END: lasts for the whole run and stacks when picked up again (rapid fire, bullet speed).
+     * WHILE_EQUIPPED: active for the whole run while the item is equipped.
+     */
+    public enum DurationKind { INSTANT, TIMED, UNTIL_LEVEL_END, UNTIL_RUN_END, WHILE_EQUIPPED }
     public enum DropSource { REGULAR_ENEMY, SPECIAL_ENEMY }
     public enum GrantSource { SHOP, REWARD }
     public enum GrantTiming { NOW, NEXT_LEVEL }
@@ -65,7 +74,9 @@ public final class ItemAPI {
     public enum EventType {
         ITEM_SPAWNED, ITEM_COLLECTED, ITEM_USED, EFFECT_STARTED,
         EFFECT_ENDED, SHIELD_BLOCKED, ITEM_EXPIRED,
-        ITEM_GRANTED, PENDING_GRANT_APPLIED
+        ITEM_GRANTED, PENDING_GRANT_APPLIED,
+        /** The magnet took a landed drop it could not keep; it becomes score. */
+        ITEM_CONVERTED
     }
 
     /** Small immutable values are read through public final fields. No setters or state-changing methods. */
@@ -88,18 +99,55 @@ public final class ItemAPI {
     }
 
     /**
-     * Values added by items. The game keeps its base values and computes (base) + (item bonus).
+     * Values added by items. Temporary extra = (base value * multiplier) - base value.
      * fireRateBonus: extra shots per second. bulletSpeedBonus: extra bullet speed in pixels per frame.
+     * Multiplier fields describe the effects; the bonus helpers return only the amounts to add.
+     * BOOST does not scale permanent bonuses. A multiplier below 1 produces no extra bonus.
      */
     public static final class Modifiers {
         public final double fireRateBonus, bulletSpeedBonus;
+        public final double movementSpeedMultiplier, fireRateMultiplier, scoreMultiplier;
         public final boolean enemyMovementBlocked;
         public Modifiers(double fireRateBonus, double bulletSpeedBonus, boolean blocked) {
+            this(fireRateBonus, bulletSpeedBonus, blocked, 1.0, 1.0, 1.0);
+        }
+        public Modifiers(double fireRateBonus, double bulletSpeedBonus, boolean blocked,
+                         double movementSpeedMultiplier, double fireRateMultiplier, double scoreMultiplier) {
             nonNegative(fireRateBonus, "fireRateBonus"); nonNegative(bulletSpeedBonus, "bulletSpeedBonus");
+            positive(movementSpeedMultiplier, "movementSpeedMultiplier");
+            positive(fireRateMultiplier, "fireRateMultiplier"); positive(scoreMultiplier, "scoreMultiplier");
             this.fireRateBonus = fireRateBonus; this.bulletSpeedBonus = bulletSpeedBonus;
+            this.movementSpeedMultiplier = movementSpeedMultiplier; this.fireRateMultiplier = fireRateMultiplier;
+            this.scoreMultiplier = scoreMultiplier;
             enemyMovementBlocked = blocked;
         }
         public static Modifiers neutral() { return new Modifiers(0.0, 0.0, false); }
+
+        /** Extra ship speed, in the same units as the unchanged base speed. */
+        public double movementSpeedBonus(double baseSpeed) {
+            return temporaryBonus(baseSpeed, movementSpeedMultiplier, "baseSpeed");
+        }
+
+        /** Total extra shots per second: permanent bonus plus the boost's base-derived extra. */
+        public double fireRateBonus(double baseFireRate) {
+            double total = fireRateBonus + temporaryBonus(baseFireRate, fireRateMultiplier, "baseFireRate");
+            finite(total, "fire rate bonus");
+            return total;
+        }
+
+        /** Extra whole points only, rounded down and capped so basePoints + bonus cannot overflow. */
+        public int scoreBonus(int basePoints) {
+            if (basePoints < 0) throw new IllegalArgumentException("basePoints");
+            double extra = Math.max(0.0, basePoints * scoreMultiplier - basePoints);
+            return (int) Math.min(Integer.MAX_VALUE - basePoints, extra);
+        }
+
+        private static double temporaryBonus(double base, double multiplier, String name) {
+            nonNegative(base, name);
+            double extra = Math.max(0.0, base * multiplier - base);
+            finite(extra, "temporary bonus");
+            return extra;
+        }
     }
 
     /** Immutable definition of an item kind. Independent of current ownership or sale. */
@@ -110,11 +158,23 @@ public final class ItemAPI {
         public final DurationKind durationKind;
         public final Long durationMillis;
         public final Integer charges;
-        /** First-pickup bonus of a stacking (UNTIL_RUN_END) effect. Later pickups add less. */
+        /**
+         * First-pickup bonus for run-wide stacks, or the multiplier for BOOST/SCORE_BOOST.
+         * Equipped items: EXTRA_SLOTS = extra inventory slots, MAGNET = score for a drop it cannot keep,
+         * MAX_LIFE = extra max lives for the life item, LONG_LASTING = extra milliseconds for timed active items.
+         */
         public final Double magnitude;
         /** Max stacks of a stacking effect. null otherwise. */
         public final Integer maxStacks;
         public final Set<GrantTiming> supportedGrantTimings;
+        /** Keeps existing callers that define non-stacking items without a stack limit compatible. */
+        public ItemInfo(String itemId, String name, String description, String iconKey,
+                        ActivationMode mode, EffectKind kind, DurationKind duration,
+                        Long milliseconds, Integer charges, Double magnitude,
+                        Set<GrantTiming> timings) {
+            this(itemId, name, description, iconKey, mode, kind, duration,
+                milliseconds, charges, magnitude, null, timings);
+        }
         public ItemInfo(String itemId, String name, String description, String iconKey,
                         ActivationMode mode, EffectKind kind, DurationKind duration,
                         Long milliseconds, Integer charges, Double magnitude,

@@ -210,4 +210,14 @@ Our Visual Effect System needs reliable wave/level start, wave completion, and l
 
 ### 3. Sound Effects/BGM Team
 
-Our Visual Effect System needs to coordinate with the Sound Effects/BGM Team for shared gameplay events such as player shooting, enemy hits, enemy destruction, and player damage/death. Visual and audio effects should be triggered from the same gameplay event and use consistent timing so that, for example, an enemy explosion and its explosion sound occur together. This coordination will help maintain consistent and responsive gameplay feedback
+Our Visual Effect System needs to coordinate with the Sound Effects/BGM Team for shared gameplay events such as player shooting, enemy hits, enemy destruction, and player damage/death. Visual and audio effects should be triggered from the same gameplay event and use consistent timing so that, for example, an enemy explosion and its explosion sound occur together. This coordination will help maintain consistent and responsive gameplay feedback.
+
+---
+
+## Game font
+
+- Default: `res/silkscreen/Silkscreen-Regular.ttf` (SIL Open Font License 1.1, see `res/silkscreen/OFL.txt`)
+- Also included: `Silkscreen-Bold.ttf` (try it: `-Dgame.font=silkscreen/Silkscreen-Bold.ttf`)
+- Fallback: `res/font.ttf` (used if the default font is missing)
+- Try another font: `java -Dgame.font=<path> -cp "out;res" engine.Core`
+- Long key hint lines shrink to fit the screen width.

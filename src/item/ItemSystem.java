@@ -2,10 +2,25 @@ package item;
 
 import java.awt.Color;
 import java.awt.Graphics;
+import java.io.File;
+import java.io.IOException;
+import java.io.Reader;
+import java.io.Writer;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Random;
+import java.util.Set;
 import java.util.logging.Logger;
 
 import engine.Core;
@@ -31,6 +46,8 @@ public final class ItemSystem {
 
     /** Balance values of this run (res/item-balance.properties). Read once when the run starts. */
     private final ItemBalance balance;
+    /** Highest lives the life item can reach this run (raised by the Max Life equipped item). */
+    private final int maxLives;
     private final ItemManager manager;
     private final ItemAPI api;
     private GameHooks hooks;
@@ -53,10 +70,19 @@ public final class ItemSystem {
 
     private ItemSystem(Random random) {
         balance = ItemBalance.load();
-        manager = new ItemManager(balance.inventoryCapacity, balance, random);
+        catalog = new ItemDefinitions(balance); // pick up balance changes for the equipment calls too
+        ItemInfo equipped = equippedItem();
+        int capacity = balance.inventoryCapacity;
+        if (equipped != null && equipped.effectKind == EffectKind.EXTRA_SLOTS)
+            capacity += equipped.magnitude.intValue();
+        maxLives = balance.maxLives + (equipped != null && equipped.effectKind == EffectKind.MAX_LIFE
+            ? equipped.magnitude.intValue() : 0);
+        manager = new ItemManager(capacity, balance, random);
         api = new ItemAPI(manager);
         manager.setEventListener(this::onEvent);
-        logger.info("Item system started a new run (" + balance.inventoryCapacity + " item slots).");
+        if (equipped != null) manager.equip(equipped);
+        logger.info("Item system started a new run (" + capacity + " item slots, max lives " + maxLives + ", equipped: "
+            + (equipped == null ? "none" : equipped.displayName) + ").");
     }
 
     /** Run instance for the level number. Starts a new run at level 1 or when there is no run. */
@@ -67,6 +93,144 @@ public final class ItemSystem {
 
     /** The current run. May be null outside a run (menus, etc.). */
     public static ItemSystem current() { return current; }
+
+    // --- Equipped items: owned and equipped outside a run, at most one equipped, used from the next run on. ---
+    // Ownership is saved next to the game, like the coin balance. How an item becomes owned
+    // (e.g. a shop purchase) belongs to the caller, which then calls grantEquipment.
+
+    private static final String EQUIPMENT_FILE = "equipment";
+    private static Set<String> ownedEquipment;
+    private static String equippedId;
+    /** Item catalog for the equipment calls outside a run. Loaded on first use, refreshed when a run starts. */
+    private static ItemDefinitions catalog;
+
+    private static ItemDefinitions catalog() {
+        if (catalog == null) catalog = new ItemDefinitions(ItemBalance.load());
+        return catalog;
+    }
+
+    /** All equipped-type items, in catalog order. */
+    public static List<ItemInfo> equipmentItems() {
+        List<ItemInfo> equipment = new ArrayList<ItemInfo>();
+        for (ItemInfo item : catalog().all())
+            if (item.activationMode == ActivationMode.EQUIPPED) equipment.add(item);
+        return Collections.unmodifiableList(equipment);
+    }
+
+    public static boolean isOwned(String itemId) {
+        loadEquipment();
+        return ownedEquipment.contains(itemId);
+    }
+
+    /** The equipped item, or null when nothing is equipped. */
+    public static ItemInfo equippedItem() {
+        loadEquipment();
+        return equippedId == null ? null : equipment(equippedId);
+    }
+
+    /**
+     * Makes the player own an equipped item, e.g. after a shop purchase. Returns true when the item
+     * is owned afterwards (also when it already was); false for an unknown or non-equipped item, or
+     * when the ownership could not be saved (nothing changes then, so the caller can undo its side).
+     */
+    public static boolean grantEquipment(String itemId) {
+        ItemInfo item = equipment(itemId);
+        if (item == null) return false;
+        loadEquipment();
+        if (ownedEquipment.contains(itemId)) return true;
+        ownedEquipment.add(itemId);
+        if (!saveEquipment()) {
+            ownedEquipment.remove(itemId);
+            return false;
+        }
+        Core.getLogger().info("Equipment owned: " + item.displayName + ".");
+        return true;
+    }
+
+    /** Equips an owned item, replacing the equipped one. Takes effect when the next run starts. */
+    public static boolean equip(String itemId) {
+        ItemInfo item = equipment(itemId);
+        if (item == null || !isOwned(itemId)) return false;
+        String previous = equippedId;
+        equippedId = itemId;
+        if (!saveEquipment()) {
+            equippedId = previous;
+            return false;
+        }
+        Core.getLogger().info("Equipment equipped: " + item.displayName + ".");
+        return true;
+    }
+
+    /** Takes off the equipped item. Takes effect when the next run starts. */
+    public static void unequip() {
+        loadEquipment();
+        if (equippedId == null) return;
+        String previous = equippedId;
+        equippedId = null;
+        if (saveEquipment()) Core.getLogger().info("Equipment unequipped.");
+        else equippedId = previous;
+    }
+
+    private static ItemInfo equipment(String itemId) {
+        if (itemId == null) return null;
+        ItemInfo item = catalog().find(itemId);
+        return item != null && item.activationMode == ActivationMode.EQUIPPED ? item : null;
+    }
+
+    /** Reads owned/equipped items once. A missing or broken file means nothing is owned. */
+    private static void loadEquipment() {
+        if (ownedEquipment != null) return;
+        ownedEquipment = new LinkedHashSet<String>();
+        equippedId = null;
+        Properties saved = new Properties();
+        try {
+            File file = equipmentFile();
+            if (!file.exists()) return;
+            try (Reader reader = Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8)) {
+                saved.load(reader);
+            }
+        } catch (IOException | IllegalArgumentException error) {
+            Core.getLogger().warning("Couldn't load equipment, starting with none.");
+            return;
+        }
+        for (String id : saved.getProperty("owned", "").split(","))
+            if (equipment(id.trim()) != null) ownedEquipment.add(id.trim());
+        String equipped = saved.getProperty("equipped", "").trim();
+        equippedId = ownedEquipment.contains(equipped) ? equipped : null;
+    }
+
+    /**
+     * Writes owned/equipped items. Returns false (and logs) when the file cannot be written.
+     * Writes a temporary file first and then replaces the save, like the coin balance, so a crash
+     * while saving never leaves a half-written file that would read as "nothing owned".
+     */
+    private static boolean saveEquipment() {
+        Properties saved = new Properties();
+        saved.setProperty("owned", String.join(",", ownedEquipment));
+        saved.setProperty("equipped", equippedId == null ? "" : equippedId);
+        try {
+            Path file = equipmentFile().toPath();
+            Path temp = file.resolveSibling(EQUIPMENT_FILE + ".tmp");
+            try (Writer writer = Files.newBufferedWriter(temp, StandardCharsets.UTF_8)) {
+                saved.store(writer, "Item System equipment (owned, equipped)");
+            }
+            try {
+                Files.move(temp, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            } catch (AtomicMoveNotSupportedException error) {
+                Files.move(temp, file, StandardCopyOption.REPLACE_EXISTING);
+            }
+            return true;
+        } catch (IOException error) {
+            Core.getLogger().warning("Couldn't save equipment: " + error.getMessage());
+            return false;
+        }
+    }
+
+    /** Next to the game files, like the coin balance and player profile. */
+    private static File equipmentFile() throws IOException {
+        String path = ItemSystem.class.getProtectionDomain().getCodeSource().getLocation().getPath();
+        return new File(new File(URLDecoder.decode(path, "UTF-8")).getParent(), EQUIPMENT_FILE);
+    }
 
     /** General entry point for the shop, HUD and effects teams. */
     public ItemAPI api() { return api; }
@@ -132,11 +296,34 @@ public final class ItemSystem {
         return result;
     }
 
-    /** Item fire rate bonus: extra shots per second, added on top of the base fire rate. */
+    /** Permanent fire rate bonus, in extra shots per second. */
     public double fireRateBonus() { return api.getModifiers().fireRateBonus; }
+
+    /** Permanent bonus plus the temporary boost's extra shots per second, derived only from the base rate. */
+    public double fireRateBonus(double baseFireRate) {
+        return api.getModifiers().fireRateBonus(baseFireRate);
+    }
+
+    /** Extra ship speed to add to the unchanged base speed. */
+    public double movementSpeedBonus(double baseSpeed) {
+        return api.getModifiers().movementSpeedBonus(baseSpeed);
+    }
+
+    /** Extra whole points to add to an earned score. */
+    public int scoreBonus(int basePoints) { return api.getModifiers().scoreBonus(basePoints); }
+
+    /** Earned base points with the active score boost applied once. */
+    public int scoreFor(int basePoints) { return basePoints + scoreBonus(basePoints); }
 
     /** Item bullet speed bonus: extra pixels per frame, added on top of the base bullet speed. */
     public double bulletSpeedBonus() { return api.getModifiers().bulletSpeedBonus; }
+
+    /** The item equipped for this run, or null. Fixed when the run starts. */
+    public ItemInfo equippedThisRun() {
+        for (EffectView effect : api.getView().effects)
+            if (effect.item.activationMode == ActivationMode.EQUIPPED) return effect.item;
+        return null;
+    }
 
     /** true means enemies must not move (freeze). */
     public boolean enemiesFrozen() { return api.getModifiers().enemyMovementBlocked; }
@@ -184,14 +371,15 @@ public final class ItemSystem {
     private final LifePort lifePort = new LifePort() {
         public boolean canAddLife() { return true; }
         public boolean tryAddLife() {
-            if (hooks.getLives() < balance.maxLives) {
+            if (hooks.getLives() < maxLives) {
                 hooks.addLife();
                 logger.info("Life item: +1 life, now " + hooks.getLives() + ".");
                 showNotice("Life +1");
             } else {
-                hooks.addScore(balance.lifeCapBonusScore);
-                logger.info("Life item at max lives: +" + balance.lifeCapBonusScore + " score.");
-                showNotice("Max lives: +" + balance.lifeCapBonusScore);
+                int points = scoreFor(balance.lifeCapBonusScore);
+                hooks.addScore(points);
+                logger.info("Life item at max lives: +" + points + " score.");
+                showNotice("Max lives: +" + points);
             }
             return true;
         }
@@ -217,6 +405,8 @@ public final class ItemSystem {
             case ITEM_USED:
                 logger.info("Item used: " + name + " from slot " + (event.slotIndex + 1) + ".");
                 notice = null; // a "(press N)" hint is outdated once the item is used
+                if (item != null && (item.effectKind == EffectKind.BOOST || item.effectKind == EffectKind.SCORE_BOOST))
+                    showNotice(name + " x" + multiplier(item.magnitude));
                 break;
             case EFFECT_STARTED: {
                 Integer stacks = stacksOf(event.effectId);
@@ -234,10 +424,23 @@ public final class ItemSystem {
             case ITEM_EXPIRED:
                 logger.info("Item drop disappeared: " + name + ".");
                 break;
+            case ITEM_CONVERTED: {
+                ItemInfo magnet = equippedThisRun();
+                int points = magnet == null ? 0 : magnet.magnitude.intValue();
+                hooks.addScore(points);
+                logger.info("Magnet: " + name + " could not be kept, +" + points + " score.");
+                showNotice(name + " +" + points);
+                break;
+            }
             default:
                 logger.info("Item event " + event.type + ": " + name + ".");
                 break;
         }
+    }
+
+    /** A multiplier without trailing zeros: 2.0 -> "2", 1.5 -> "1.5". */
+    private static String multiplier(double value) {
+        return value == Math.rint(value) ? Long.toString((long) value) : Double.toString(value);
     }
 
     private void showNotice(String text) {
@@ -275,6 +478,8 @@ public final class ItemSystem {
             case RAPID_FIRE: return Color.ORANGE;
             case BULLET_SPEED: return Color.YELLOW;
             case FREEZE: return new Color(150, 150, 255);
+            case BOOST: return new Color(100, 255, 100);
+            case SCORE_BOOST: return new Color(255, 100, 200);
             default: return Color.WHITE;
         }
     }
