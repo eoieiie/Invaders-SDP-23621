@@ -78,6 +78,8 @@ public final class Core {
 	private static ConsoleHandler consoleHandler;
 	/** Persistent achievement progress manager. */
 	private static AchievementManager achievementManager;
+	/** Ship used for the current run. Only the starter ship exists for now. */
+	private static String selectedShipId = AchievementManager.STARTER_SHIP_ID;
 
 
 	/**
@@ -346,6 +348,13 @@ public final class Core {
 		if (achievementManager == null)
 			achievementManager = new AchievementManager();
 		return achievementManager;
+	}
+	public static String getSelectedShipId() {
+		return selectedShipId;
+	}
+	/** @return Number of levels in the game. */
+	public static int getNumLevels() {
+		return NUM_LEVELS;
 	}
 
 	/**

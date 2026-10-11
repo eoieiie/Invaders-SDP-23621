@@ -18,12 +18,14 @@ import screen.Starfield;
 import entity.Coin;
 import entity.Entity;
 import entity.Ship;
+import item.ItemAPI;
+import item.ItemSystem;
 
 /**
  * Manages screen drawing.
- * 
+ *
  * @author <a href="mailto:RobertoIA1987@gmail.com">Roberto Izquierdo Amo</a>
- * 
+ *
  */
 public final class DrawManager {
 
@@ -41,6 +43,15 @@ public final class DrawManager {
 	private static Graphics backBufferGraphics;
 	/** Buffer image. */
 	private static BufferedImage backBuffer;
+	/** Top of the item panel, right below the HUD line (Team CS). */
+	private static final int ITEM_PANEL_TOP = 43;
+	/** Size of one item slot box in the item panel. */
+	private static final int ITEM_SLOT_WIDTH = 52;
+	private static final int ITEM_SLOT_HEIGHT = 16;
+	/** Item notice baseline, measured up from the bottom of the screen. */
+	private static final int ITEM_NOTICE_BOTTOM_OFFSET = 60;
+	/** The shield bubble blinks during this many last milliseconds. */
+	private static final long SHIELD_BLINK_MILLIS = 2000;
 	/** Normal sized font. */
 	private static Font fontRegular;
 	/** Normal sized font properties. */
@@ -85,7 +96,15 @@ public final class DrawManager {
 		/** Destroyed enemy ship. */
 		Explosion,
 		/** First Flight achievement icon. */
-		FirstFlight
+		FirstFlight,
+		/** Fleet Master achievement icon. */
+		FleetMaster,
+		/** Weakestship sprite. */
+		Weakestship,
+		/** Infinity Void achievement icon. */
+		InfinityVoid,
+        /** First Boss Kill achievement icon. */
+        BossKill
 	};
 
 	/**
@@ -112,6 +131,10 @@ public final class DrawManager {
 			spriteMap.put(SpriteType.EnemyShipSpecial, new boolean[16][7]);
 			spriteMap.put(SpriteType.Explosion, new boolean[13][7]);
 			spriteMap.put(SpriteType.FirstFlight, new boolean[11][8]);
+			spriteMap.put(SpriteType.FleetMaster, new boolean[23][23]);
+			spriteMap.put(SpriteType.Weakestship, new boolean[11][11]);
+			spriteMap.put(SpriteType.InfinityVoid, new boolean[11][11]);
+            spriteMap.put(SpriteType.BossKill, new boolean[11][11]);
 
 			fileManager.loadSprite(spriteMap);
 			logger.info("Finished loading the sprites.");
@@ -140,7 +163,7 @@ public final class DrawManager {
 
 	/**
 	 * Returns shared instance of DrawManager.
-	 * 
+	 *
 	 * @return Shared instance of DrawManager.
 	 */
 	protected static DrawManager getInstance() {
@@ -151,7 +174,7 @@ public final class DrawManager {
 
 	/**
 	 * Sets the frame to draw the image on.
-	 * 
+	 *
 	 * @param currentFrame
 	 *            Frame to draw on.
 	 */
@@ -162,11 +185,21 @@ public final class DrawManager {
 	/**
 	 * First part of the drawing process. Initialices buffers, draws the
 	 * background and prepares the images.
-	 * 
+	 *
 	 * @param screen
 	 *            Screen to draw in.
 	 */
 	public void initDrawing(final Screen screen) {
+
+		if (fontRegular == null) {
+			fontRegular = new Font(Font.MONOSPACED, Font.PLAIN, 14);
+		}
+		if (fontBig == null) {
+			fontBig = new Font(Font.MONOSPACED, Font.PLAIN, 24);
+		}
+		if (fontSelected == null) {
+			fontSelected = fontRegular;
+		}
 		backBuffer = new BufferedImage(screen.getWidth(), screen.getHeight(),
 				BufferedImage.TYPE_INT_RGB);
 
@@ -187,7 +220,7 @@ public final class DrawManager {
 
 	/**
 	 * Draws the completed drawing on screen.
-	 * 
+	 *
 	 * @param screen
 	 *            Screen to draw on.
 	 */
@@ -198,7 +231,7 @@ public final class DrawManager {
 
 	/**
 	 * Draws an entity, using the apropiate image.
-	 * 
+	 *
 	 * @param entity
 	 *            Entity to be drawn.
 	 * @param positionX
@@ -221,17 +254,19 @@ public final class DrawManager {
 	 * @param color Color used for filled pixels.
 	 */
 	public void drawSprite(final SpriteType spriteType, final int positionX,
-			final int positionY, final Color color) {
+						   final int positionY, final Color color) {
 		boolean[][] image = spriteMap.get(spriteType);
 
 		backBufferGraphics.setColor(color);
+
 		for (int i = 0; i < image.length; i++)
 			for (int j = 0; j < image[i].length; j++)
 				if (image[i][j])
-					backBufferGraphics.drawRect(positionX + i * 2, positionY
-							+ j * 2, 1, 1);
+					backBufferGraphics.drawRect(
+							positionX + i * 2,
+							positionY + j * 2,
+							1, 1);
 	}
-
 	/**
 	 * Draws regular text at an exact position, left aligned.
 	 *
@@ -261,7 +296,7 @@ public final class DrawManager {
 		backBufferGraphics.setColor(color);
 		backBufferGraphics.drawRect(positionX, positionY, width, height);
 	}
-	
+
 	/**
 	 * Draws a dropped coin as a filled circle (GoG - Currency System).
 	 * Coins have no entry in the shared sprite file, so they are drawn
@@ -279,6 +314,150 @@ public final class DrawManager {
 		backBufferGraphics.setColor(coin.getColor());
 		backBufferGraphics.fillOval(positionX, positionY, coin.getWidth(),
 				coin.getHeight());
+	}
+
+	/**
+	 * Draws the item drops on the field (Team CS - Item System). Drops have
+	 * no entry in the shared sprite file yet, so the item system draws
+	 * placeholder shapes on the back buffer.
+	 *
+	 * @param items
+	 *            Item system of the current run.
+	 */
+	public void drawItemDrops(final ItemSystem items) {
+		backBufferGraphics.setFont(fontRegular);
+		items.drawDrops(backBufferGraphics);
+	}
+
+	/**
+	 * Draws the shield item around the player ship while it is active
+	 * (Team CS - Item System): a cyan bubble that blinks during its last
+	 * seconds.
+	 *
+	 * @param ship
+	 *            Player ship.
+	 * @param items
+	 *            Item system of the current run.
+	 */
+	public void drawItemShield(final Entity ship, final ItemSystem items) {
+		ItemAPI.EffectView shield = items.shield();
+		if (shield == null)
+			return;
+		long remaining = shield.remainingMillis == null ? Long.MAX_VALUE
+				: shield.remainingMillis;
+		if (remaining < SHIELD_BLINK_MILLIS
+				&& (System.currentTimeMillis() / 150) % 2 == 0)
+			return;
+		int padding = 6;
+		int x = ship.getPositionX() - padding;
+		int y = ship.getPositionY() - padding;
+		int width = ship.getWidth() + padding * 2;
+		int height = ship.getHeight() + padding * 2;
+		Color color = ItemSystem.colorOf(shield.item.effectKind);
+		backBufferGraphics.setColor(new Color(color.getRed(),
+				color.getGreen(), color.getBlue(), 60));
+		backBufferGraphics.fillOval(x, y, width, height);
+		backBufferGraphics.setColor(color);
+		backBufferGraphics.drawOval(x, y, width, height);
+	}
+
+	/**
+	 * Draws the item panel right below the HUD line (Team CS - Item System):
+	 * inventory slots on the left, each with the number key that uses it,
+	 * and running effects on the right with stacks or seconds left. The
+	 * latest item notice is shown above the player ship.
+	 *
+	 * @param screen
+	 *            Screen to draw on.
+	 * @param items
+	 *            Item system of the current run.
+	 */
+	public void drawItemHud(final Screen screen, final ItemSystem items) {
+		ItemAPI.View view = items.api().getView();
+		Font font = fontRegular.deriveFont(12f);
+		FontMetrics metrics = backBufferGraphics.getFontMetrics(font);
+		backBufferGraphics.setFont(font);
+		int baseline = ITEM_PANEL_TOP + ITEM_SLOT_HEIGHT - 4;
+
+		// Slots: "1 [Shield]" ... an empty slot is a dark box.
+		int x = 6;
+		for (int i = 0; i < view.slots.size(); i++) {
+			ItemAPI.ItemInfo item = view.slots.get(i);
+			backBufferGraphics.setColor(Color.GRAY);
+			backBufferGraphics.drawString(Integer.toString(i + 1), x, baseline);
+			x += metrics.stringWidth("0") + 3;
+			backBufferGraphics.setColor(item == null ? Color.DARK_GRAY
+					: ItemSystem.colorOf(item.effectKind));
+			backBufferGraphics.drawRect(x, ITEM_PANEL_TOP, ITEM_SLOT_WIDTH,
+					ITEM_SLOT_HEIGHT);
+			if (item != null)
+				backBufferGraphics.drawString(item.displayName, x + 4, baseline);
+			x += ITEM_SLOT_WIDTH + 8;
+		}
+
+		// Effects, right-aligned: "RF x2  SH 8s".
+		int right = screen.getWidth() - 6;
+		for (int i = view.effects.size() - 1; i >= 0; i--) {
+			ItemAPI.EffectView effect = view.effects.get(i);
+			String label = shortItemName(effect.item.effectKind);
+			if (effect.stacks != null)
+				label += " x" + effect.stacks;
+			else if (effect.remainingMillis != null)
+				label += " " + (effect.remainingMillis + 999) / 1000 + "s";
+			right -= metrics.stringWidth(label);
+			backBufferGraphics.setColor(ItemSystem
+					.colorOf(effect.item.effectKind));
+			backBufferGraphics.drawString(label, right, baseline);
+			right -= 10;
+		}
+
+		String notice = items.getNotice();
+		if (notice != null) {
+			backBufferGraphics.setColor(Color.YELLOW);
+			drawCenteredRegularString(screen, notice, screen.getHeight()
+					- ITEM_NOTICE_BOTTOM_OFFSET);
+		}
+	}
+
+	/**
+	 * Explains the items while the level countdown runs (Team CS - Item
+	 * System).
+	 *
+	 * @param screen
+	 *            Screen to draw on.
+	 * @param items
+	 *            Item system of the current run.
+	 */
+	public void drawItemHint(final Screen screen, final ItemSystem items) {
+		int slots = items.api().getView().slots.size();
+		backBufferGraphics.setColor(Color.GRAY);
+		drawCenteredRegularString(screen, "Catch item drops with your ship",
+				screen.getHeight() * 2 / 3);
+		drawCenteredRegularString(screen, "Keys 1-" + slots
+				+ " use stored items", screen.getHeight() * 2 / 3
+				+ fontRegularMetrics.getHeight());
+	}
+
+	/**
+	 * Short label for a running item effect in the HUD.
+	 *
+	 * @param kind
+	 *            Effect kind.
+	 * @return Two-letter label.
+	 */
+	private static String shortItemName(final ItemAPI.EffectKind kind) {
+		switch (kind) {
+		case RAPID_FIRE:
+			return "RF";
+		case BULLET_SPEED:
+			return "BS";
+		case SHIELD:
+			return "SH";
+		case FREEZE:
+			return "FZ";
+		default:
+			return kind.name();
+		}
 	}
 
 	/**
@@ -626,8 +805,8 @@ public final class DrawManager {
 		backBufferGraphics.setColor(Color.GREEN);
 		backBufferGraphics.drawString("ACHIEVEMENT UNLOCKED", boxX + 34,
 				boxY + 16);
-		drawSprite(achievement.getSpriteType(), boxX + 8, boxY + 23,
-				Color.YELLOW);
+		drawSprite(achievement.getSpriteType(),
+				boxX + 8, boxY + 20, achievement.getIconColor());
 		backBufferGraphics.setColor(Color.WHITE);
 		backBufferGraphics.drawString(achievement.getName(), boxX + 34,
 				boxY + 35);
@@ -645,19 +824,40 @@ public final class DrawManager {
 		int contentX = iconX + 40;
 		int nameY = screen.getHeight() / 2;
 		String status = achievement.isUnlocked() ? "UNLOCKED" : "LOCKED";
-
-		drawSprite(achievement.getSpriteType(), iconX, nameY - 20,
-				achievement.isUnlocked() ? Color.YELLOW : Color.DARK_GRAY);
+		drawSprite(achievement.getSpriteType(),
+				iconX, nameY - 20,
+				achievement.isUnlocked() ? achievement.getIconColor() : Color.DARK_GRAY);
 		backBufferGraphics.setFont(fontRegular);
 		backBufferGraphics.setColor(achievement.isUnlocked() ? Color.WHITE
 				: Color.GRAY);
 		backBufferGraphics.drawString(achievement.getName() + " - " + status,
 				contentX, nameY);
 		backBufferGraphics.setColor(Color.GRAY);
-		backBufferGraphics.drawString("Unlock: defeat "
-				+ achievement.getRequiredEnemyKills() + " enemies.", contentX,
+		backBufferGraphics.drawString(Core.getAchievementManager()
+				.getRequirementText(achievement), contentX,
 				nameY + fontRegularMetrics.getHeight() * 2);
 	}
+	/**Draw smaller sprite in achievement
+	 *
+	 */
+	public void drawSmallSprite(final SpriteType spriteType,
+								final int positionX, final int positionY, final Color color) {
+
+		boolean[][] image = spriteMap.get(spriteType);
+		backBufferGraphics.setColor(color);
+
+		for (int x = 0; x < image.length; x++) {
+			for (int y = 0; y < image[x].length; y++) {
+				if (image[x][y]) {
+					backBufferGraphics.fillRect(
+							positionX + x,
+							positionY + y,
+							1, 1);
+				}
+			}
+		}
+	}
+
 
 	/**
 	 * Draws the scrolling stars behind the main menu. Call it right after
@@ -1042,9 +1242,9 @@ public final class DrawManager {
 		if (effect != null)
 			effect.draw(backBufferGraphics, screen.getWidth(),
 					screen.getHeight());
-	}                                          // <- ADD
+	}                                      
 
-	/**                                        // <- ADD
+	/**                                     
 	 * Draws the low-health glitch effect.
 	 * AUTHORED BY: VFX TEAM (Effection)
 	 *Any further inquiries please contact us.

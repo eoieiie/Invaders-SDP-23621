@@ -35,6 +35,10 @@ public class Ship extends Entity {
 	private Cooldown shootingCooldown;
 	/** Time spent inactive between hits. */
 	private Cooldown destructionCooldown;
+	/** Extra shots per second from items, added to the base rate (Team CS). */
+	private double itemFireRateBonus;
+	/** Extra bullet speed from items, added to the base speed (Team CS). */
+	private double itemBulletSpeedBonus;
 
 	/**
 	 * AUTHORED BY: VFX TEAM (effection)
@@ -93,10 +97,32 @@ public class Ship extends Entity {
 		if (this.shootingCooldown.checkFinished()) {
 			this.shootingCooldown.reset();
 			bullets.add(BulletPool.getBullet(positionX + this.width / 2,
-					positionY, BULLET_SPEED));
+					positionY, BULLET_SPEED - (int) Math.round(this.itemBulletSpeedBonus)));
 			return true;
 		}
 		return false;
+	}
+
+	/**
+	 * Sets the bonuses items add on top of the base fire rate and bullet
+	 * speed (Team CS - Item System). The base values stay unchanged; with
+	 * both bonuses at 0 the ship shoots exactly as before.
+	 *
+	 * @param fireRateBonus
+	 *            Extra shots per second.
+	 * @param bulletSpeedBonus
+	 *            Extra bullet speed in pixels per frame.
+	 */
+	public final void setItemBonuses(final double fireRateBonus,
+			final double bulletSpeedBonus) {
+		this.itemBulletSpeedBonus = Math.max(0, bulletSpeedBonus);
+		double bonus = Math.max(0, fireRateBonus);
+		if (bonus != this.itemFireRateBonus) {
+			this.itemFireRateBonus = bonus;
+			// (base shots per second) + (item bonus) -> new interval.
+			this.shootingCooldown = Core.getCooldown((int) Math.round(
+					1000.0 / (1000.0 / SHOOTING_INTERVAL + bonus)));
+		}
 	}
 
 	/**

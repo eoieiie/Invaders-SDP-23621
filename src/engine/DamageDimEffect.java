@@ -14,7 +14,7 @@ import java.awt.Graphics2D;
  *
  * Team Effection - Visual Effects.
  */
-public class DamageDimEffect {
+public class DamageDimEffect implements GameEvents.Listener {
 
     /** Default fade time in milliseconds. */
     private static final int DEFAULT_DURATION = 600;
@@ -76,7 +76,21 @@ public class DamageDimEffect {
     /** Stops the effect at once (for example, on level end). */
     public void reset() {
         this.active = false;
+
+        
     }
+    /**
+     * Reacts to PLAYER_HIT.
+     *
+     * @param type      Event type.
+     * @param livesLeft Lives left after the hit.
+     */
+    @Override
+    public void onEvent(final GameEvents.Type type, final int livesLeft) {
+        if (type == GameEvents.Type.PLAYER_HIT)
+            trigger(livesLeft <= 1 ? 1f : 0.35f);
+    }
+
 
     /** @return True while the effect is visible. */
     public boolean isActive() {
