@@ -7,9 +7,9 @@ import engine.Core;
 
 /**
  * Implements the title screen.
- * 
+ *
  * @author <a href="mailto:RobertoIA1987@gmail.com">Roberto Izquierdo Amo</a>
- * 
+ *
  */
 public class TitleScreen extends Screen {
 
@@ -30,10 +30,12 @@ public class TitleScreen extends Screen {
 	private boolean escapeWasDown;
 	/** Stars behind the menu, kept between visits so they don't jump. */
 	private static Starfield starfield;
+	/** Blocks exit confirmation input until Space, Enter and Escape are released. */
+	private boolean confirmBlockedUntilRelease;
 
 	/**
 	 * Constructor, establishes the properties of the screen.
-	 * 
+	 *
 	 * @param width
 	 *            Screen width.
 	 * @param height
@@ -49,13 +51,16 @@ public class TitleScreen extends Screen {
 		this.selectionCooldown = Core.getCooldown(SELECTION_TIME);
 		this.selectionCooldown.reset();
 		this.escapeWasDown = this.inputManager.isKeyDown(KeyEvent.VK_ESCAPE);
+		this.confirmBlockedUntilRelease =
+				(this.inputManager.isKeyDown(KeyEvent.VK_SPACE)
+				|| this.inputManager.isKeyDown(KeyEvent.VK_ENTER));
 		if (starfield == null)
 			starfield = new Starfield(width, height);
 	}
 
 	/**
 	 * Starts the action.
-	 * 
+	 *
 	 * @return Next screen code.
 	 */
 	public final int run() {
@@ -78,11 +83,17 @@ public class TitleScreen extends Screen {
 		starfield.update();
 		draw();
 
+		if (!(inputManager.isKeyDown(KeyEvent.VK_SPACE)
+			|| inputManager.isKeyDown(KeyEvent.VK_ENTER)) && !escapeWasDown) {
+			confirmBlockedUntilRelease = false;
+		}
+
 		if (!this.inputDelay.checkFinished()) {
 			return;
 		}
 
-		if (escapePressed) {
+		if (escapePressed && !confirmBlockedUntilRelease) {
+			confirmBlockedUntilRelease = true;
 			if (this.showingExitConfirm) {
 				closeExitConfirm();
 			} else {
@@ -132,9 +143,9 @@ public class TitleScreen extends Screen {
 			this.selectionCooldown.reset();
 		}
 		if (inputManager.isKeyDown(KeyEvent.VK_SPACE)
-				|| inputManager.isKeyDown(KeyEvent.VK_ENTER))
+				|| inputManager.isKeyDown(KeyEvent.VK_ENTER)) {
 			confirm();
-
+		}
 		if (inputManager.isMousePressed()) {
 			final MenuItem item = drawManager.menuItemAt(this,
 					inputManager.getMouseY());
@@ -158,9 +169,9 @@ public class TitleScreen extends Screen {
 			this.selectionCooldown.reset();
 		}
 		if (inputManager.isKeyDown(KeyEvent.VK_SPACE)
-				|| inputManager.isKeyDown(KeyEvent.VK_ENTER))
+				|| inputManager.isKeyDown(KeyEvent.VK_ENTER)) {
 			answerExitConfirm();
-
+		}
 		if (inputManager.isMousePressed()) {
 			final Boolean answer = drawManager.exitConfirmAnswerAt(this,
 					inputManager.getMouseX(), inputManager.getMouseY());
@@ -176,11 +187,15 @@ public class TitleScreen extends Screen {
 	 * Enter or a mouse click - goes through here.
 	 */
 	private void answerExitConfirm() {
+		if (confirmBlockedUntilRelease)
+			return;
 		if (this.exitConfirmYes) {
 			this.returnCode = MenuItem.EXIT.getCode();
 			this.isRunning = false;
-		} else
+		} else {
+			confirmBlockedUntilRelease = true;
 			closeExitConfirm();
+		}
 	}
 
 	/**
@@ -216,7 +231,10 @@ public class TitleScreen extends Screen {
 			return;
 
 		if (this.selected == MenuItem.EXIT) {
+			if (confirmBlockedUntilRelease)
+				return;
 			openExitConfirm();
+			confirmBlockedUntilRelease = true;
 			return;
 		}
 
