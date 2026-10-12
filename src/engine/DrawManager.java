@@ -1,5 +1,8 @@
 package engine;
 
+import java.awt.AlphaComposite;
+import java.awt.Graphics2D;
+import entity.EnemyShip;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.FontFormatException;
@@ -17,6 +20,7 @@ import screen.Screen;
 import screen.Starfield;
 import entity.Coin;
 import entity.Entity;
+import entity.Particle;
 import entity.Ship;
 import item.ItemAPI;
 import item.ItemSystem;
@@ -52,6 +56,10 @@ public final class DrawManager {
 	private static final int ITEM_NOTICE_BOTTOM_OFFSET = 60;
 	/** The shield bubble blinks during this many last milliseconds. */
 	private static final long SHIELD_BLINK_MILLIS = 2000;
+	/** Current world offset X (screen shake). */
+	private static int worldOffsetX;
+	/** Current world offset Y (screen shake). */
+	private static int worldOffsetY;
 	/** Normal sized font. */
 	private static Font fontRegular;
 	/** Normal sized font properties. */
@@ -217,6 +225,8 @@ public final class DrawManager {
 
 		graphics = frame.getGraphics();
 		backBufferGraphics = backBuffer.getGraphics();
+		worldOffsetX = 0;
+		worldOffsetY = 0;
 
 		backBufferGraphics.setColor(Color.BLACK);
 		backBufferGraphics
@@ -237,8 +247,27 @@ public final class DrawManager {
 	 *            Screen to draw on.
 	 */
 	public void completeDrawing(final Screen screen) {
+		setWorldOffset(0, 0);
 		graphics.drawImage(backBuffer, frame.getInsets().left,
 				frame.getInsets().top, frame);
+	}
+
+	/**
+	 * AUTHORED BY: VFX TEAM (Effection)
+	 *
+	 * Moves everything drawn after this call by the given offset.
+	 * Used for screen shake. Call setWorldOffset(0, 0) before the HUD.
+	 *
+	 * @param offsetX
+	 *            X offset in pixels.
+	 * @param offsetY
+	 *            Y offset in pixels.
+	 */
+	public void setWorldOffset(final int offsetX, final int offsetY) {
+		backBufferGraphics.translate(offsetX - worldOffsetX,
+				offsetY - worldOffsetY);
+		worldOffsetX = offsetX;
+		worldOffsetY = offsetY;
 	}
 
 	/**
@@ -253,8 +282,21 @@ public final class DrawManager {
 	 */
 	public void drawEntity(final Entity entity, final int positionX,
 			final int positionY) {
+		// Enemy ships can be see-through while flickering / fading out.
+		float alpha = 1f;
+		if (entity instanceof EnemyShip)
+			alpha = ((EnemyShip) entity).getAlpha();
+		if (alpha <= 0f)
+			return;
+
+		Graphics2D g2d = (Graphics2D) backBufferGraphics;
+		g2d.setComposite(AlphaComposite.getInstance(
+				AlphaComposite.SRC_OVER, alpha));
+
 		drawSprite(entity.getSpriteType(), positionX, positionY,
 				entity.getColor());
+
+		g2d.setComposite(AlphaComposite.SrcOver); // back to normal
 	}
 
 	/**
@@ -550,6 +592,23 @@ public final class DrawManager {
 		backBufferGraphics.setColor(Color.WHITE);
 		backBufferGraphics.drawString(balanceString, startX + iconSize
 				+ iconTextGap, positionY);
+	}
+
+	/**
+	 * Draws a sparkle, see-through according to its age.
+	 * AUTHORED BY: VFX TEAM (Effection)
+	 *
+	 * @param particle
+	 *            Particle to draw.
+	 */
+	public void drawParticle(final Particle particle) {
+		java.awt.Graphics2D g2d = (java.awt.Graphics2D) backBufferGraphics;
+		g2d.setComposite(java.awt.AlphaComposite.getInstance(
+				java.awt.AlphaComposite.SRC_OVER, particle.getAlpha()));
+		g2d.setColor(particle.getColor());
+		g2d.fillRect(particle.getX(), particle.getY(), particle.getSize(),
+				particle.getSize());
+		g2d.setComposite(java.awt.AlphaComposite.SrcOver);
 	}
 
 	/**
