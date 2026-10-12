@@ -123,7 +123,7 @@ public final class InputManager implements KeyListener, MouseMotionListener, Mou
 
 	/**
 	 * Updates the mouse position and records mouse movement.
-	 * 
+	 *
 	 * @param e
 	 * 			Mouse movement event.
 	 */

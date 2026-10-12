@@ -30,7 +30,6 @@ public class TitleScreen extends Screen {
 	private boolean escapeWasDown;
 	/** Stars behind the menu, kept between visits so they don't jump. */
 	private static Starfield starfield;
-
 	/**
 	 * Constructor, establishes the properties of the screen.
 	 * 
