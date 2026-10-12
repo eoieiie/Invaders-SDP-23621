@@ -143,9 +143,8 @@ public class TitleScreen extends Screen {
 			this.selectionCooldown.reset();
 		}
 		if (inputManager.isKeyDown(KeyEvent.VK_SPACE)
-				|| inputManager.isKeyDown(KeyEvent.VK_ENTER)) {
+				|| inputManager.isKeyDown(KeyEvent.VK_ENTER))
 			confirm();
-		}
 		if (inputManager.isMousePressed()) {
 			final MenuItem item = drawManager.menuItemAt(this,
 					inputManager.getMouseY());
@@ -169,9 +168,9 @@ public class TitleScreen extends Screen {
 			this.selectionCooldown.reset();
 		}
 		if (inputManager.isKeyDown(KeyEvent.VK_SPACE)
-				|| inputManager.isKeyDown(KeyEvent.VK_ENTER)) {
+				|| inputManager.isKeyDown(KeyEvent.VK_ENTER))
 			answerExitConfirm();
-		}
+
 		if (inputManager.isMousePressed()) {
 			final Boolean answer = drawManager.exitConfirmAnswerAt(this,
 					inputManager.getMouseX(), inputManager.getMouseY());
