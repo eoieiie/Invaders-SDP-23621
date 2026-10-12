@@ -111,7 +111,7 @@ public class ShipSelectScreen extends Screen {
         // Draw the image of the ship
         drawManager.drawEntity(dummyShip, positionX, positionY);
 
-        drawManager.drawKeyHints(this, "arrows select | space confirm | esc back");
+        drawManager.drawKeyHints(this, "arrows choose, space select, esc back");
 
         drawManager.completeDrawing(this);
         }
