@@ -1,6 +1,8 @@
 package screen;
 
 import java.awt.event.KeyEvent;
+
+import engine.Core;
 import entity.Ship.ShipType;
 
 /**
@@ -30,7 +32,8 @@ public class ShipSelectScreen extends Screen {
     public ShipSelectScreen(final int width, final int height, final int fps) {
         super(width, height, fps);
         this.returnCode = 1; // Default return to main menu
-        this.selectionIndex = 0;
+        // Open on the ship chosen last time instead of always the first one.
+        this.selectionIndex = Core.getSelectedShipType().ordinal();
         this.leftWasDown = false;
         this.rightWasDown = false;
     }
@@ -74,9 +77,16 @@ public class ShipSelectScreen extends Screen {
 
         if (this.inputDelay.checkFinished()) {
             if (inputManager.isKeyDown(KeyEvent.VK_SPACE)) {
+                // Confirm: remember the choice for the menu and the game.
+                Core.setSelectedShipType(this.availableShips[this.selectionIndex]);
+                this.logger.info("Ship selected: "
+                        + this.availableShips[this.selectionIndex]);
                 this.isRunning = false;
             }
             if (inputManager.isKeyDown(KeyEvent.VK_ESCAPE)) {
+                // Back: leave the previous choice unchanged.
+                this.logger.info("Ship selection cancelled, keeping "
+                        + Core.getSelectedShipType());
                 this.isRunning = false;
             }
         }

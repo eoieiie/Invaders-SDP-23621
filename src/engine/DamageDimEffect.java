@@ -5,6 +5,9 @@ import java.awt.Color;
 import java.awt.Composite;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Paint;
+import java.awt.RadialGradientPaint;
+import java.awt.geom.Point2D;
 
 /**
  *  AUTHORED BY: VFX TEAM (Effection)
@@ -36,6 +39,9 @@ public class DamageDimEffect implements GameEvents.Listener {
     /** Strength of the dim effect. */
     private float strength = 1.0f;
 
+    /** True = dark edges only. False = full screen. */
+    private boolean vignette = true;
+
     /** Creates the effect with default values. */
     public DamageDimEffect() {
         this(DEFAULT_DURATION, DEFAULT_MAX_ALPHA, Color.BLACK);
@@ -56,8 +62,16 @@ public class DamageDimEffect implements GameEvents.Listener {
         this.active = false;
     }
 
-
-   /** Starts the effect at full strength. */
+    /**
+     * Sets the dim style.
+     *
+     * @param vignette True for dark edges only, false for full screen.
+     */
+    public void setVignette(final boolean vignette) {
+        this.vignette = vignette;
+    }
+  
+    /** Starts the effect at full strength. */
     public void trigger() {
         trigger(1f);
     }
@@ -134,17 +148,36 @@ public class DamageDimEffect implements GameEvents.Listener {
      * @param width  Screen width.
      * @param height Screen height.
      */
+    
     public void draw(final Graphics g, final int width, final int height) {
         float alpha = getAlpha();
-        if (alpha <= 0f || !(g instanceof Graphics2D)) {
+        if (alpha <= 0f || !(g instanceof Graphics2D))
             return;
-        }
         Graphics2D g2 = (Graphics2D) g;
-        Composite old = g2.getComposite();
-        g2.setComposite(
-                AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
-        g2.setColor(this.color);
-        g2.fillRect(0, 0, width, height);
-        g2.setComposite(old);
+
+        if (this.vignette) {
+            int edge = Math.round(Math.min(1f, alpha) * 255);
+            int r = this.color.getRed();
+            int gr = this.color.getGreen();
+            int b = this.color.getBlue();
+            Paint oldPaint = g2.getPaint();
+            g2.setPaint(new RadialGradientPaint(
+                    new Point2D.Float(width / 2f, height / 2f),
+                    Math.max(width, height) * 0.75f,
+                    new float[] {0f, 0.5f, 1f},
+                    new Color[] {new Color(r, gr, b, 0),
+                            new Color(r, gr, b, edge / 3),
+                            new Color(r, gr, b, edge)}));
+            g2.fillRect(0, 0, width, height);
+            g2.setPaint(oldPaint);
+        } else {
+            Composite old = g2.getComposite();
+            g2.setComposite(AlphaComposite.getInstance(
+                    AlphaComposite.SRC_OVER, alpha));
+            g2.setColor(this.color);
+            g2.fillRect(0, 0, width, height);
+            g2.setComposite(old);
+        }
     }
 }
+

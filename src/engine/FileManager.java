@@ -31,9 +31,9 @@ import engine.DrawManager.SpriteType;
 
 /**
  * Manages files used in the application.
- * 
+ *
  * @author <a href="mailto:RobertoIA1987@gmail.com">Roberto Izquierdo Amo</a>
- * 
+ *
  */
 public final class FileManager {
 
@@ -65,7 +65,7 @@ public final class FileManager {
 
 	/**
 	 * Returns shared instance of FileManager.
-	 * 
+	 *
 	 * @return Shared instance of FileManager.
 	 */
 	protected static FileManager getInstance() {
@@ -76,44 +76,70 @@ public final class FileManager {
 
 	/**
 	 * Loads sprites from disk.
-	 * 
+	 *
+	 * The graphics file holds the sprites as 0/1 bits, in the same order
+	 * they are added to the sprite map in DrawManager. Lines starting with
+	 * "//" are comments and are skipped, so each sprite can be labelled and
+	 * grouped by team. Comments may contain any text, including digits.
+	 *
 	 * @param spriteMap
 	 *            Mapping of sprite type and empty boolean matrix that will
 	 *            contain the image.
 	 * @throws IOException
-	 *             In case of loading problems.
+	 *             In case of loading problems, or when the graphics file has
+	 *             fewer bits than the registered sprites need.
 	 */
 	public void loadSprite(final Map<SpriteType, boolean[][]> spriteMap)
 			throws IOException {
 		InputStream inputStream = null;
+		BufferedReader reader = null;
+		StringBuilder bits = new StringBuilder();
 
 		try {
 			inputStream = DrawManager.class.getClassLoader()
 					.getResourceAsStream("graphics");
-			char c;
+			if (inputStream == null)
+				throw new IOException("Graphics file not found.");
+			reader = new BufferedReader(new InputStreamReader(inputStream,
+					Charset.forName("UTF-8")));
 
-			// Sprite loading.
-			for (Map.Entry<SpriteType, boolean[][]> sprite : spriteMap
-					.entrySet()) {
-				for (int i = 0; i < sprite.getValue().length; i++)
-					for (int j = 0; j < sprite.getValue()[i].length; j++) {
-						do
-							c = (char) inputStream.read();
-						while (c != '0' && c != '1');
-
-						if (c == '1')
-							sprite.getValue()[i][j] = true;
-						else
-							sprite.getValue()[i][j] = false;
-					}
-				logger.fine("Sprite " + sprite.getKey() + " loaded.");
+			// Keep only the bits, skipping comment lines.
+			String line;
+			while ((line = reader.readLine()) != null) {
+				if (line.trim().startsWith("//"))
+					continue;
+				for (int k = 0; k < line.length(); k++) {
+					char c = line.charAt(k);
+					if (c == '0' || c == '1')
+						bits.append(c);
+				}
 			}
-			if (inputStream != null)
-				inputStream.close();
 		} finally {
-			if (inputStream != null)
+			if (reader != null)
+				reader.close();
+			else if (inputStream != null)
 				inputStream.close();
 		}
+
+		// Sprite loading.
+		int position = 0;
+		for (Map.Entry<SpriteType, boolean[][]> sprite : spriteMap
+				.entrySet()) {
+			boolean[][] image = sprite.getValue();
+			int needed = image.length * image[0].length;
+			if (position + needed > bits.length())
+				throw new IOException("Graphics file ran out of data at sprite "
+						+ sprite.getKey() + ": needs " + needed + " bits, "
+						+ (bits.length() - position) + " left.");
+			for (int i = 0; i < image.length; i++)
+				for (int j = 0; j < image[i].length; j++)
+					image[i][j] = bits.charAt(position++) == '1';
+			logger.fine("Sprite " + sprite.getKey() + " loaded.");
+		}
+
+		if (position < bits.length())
+			logger.warning("Graphics file has " + (bits.length() - position)
+					+ " unused bits. A sprite may be missing from DrawManager.");
 	}
 
 	/**
@@ -174,7 +200,7 @@ public final class FileManager {
 	/**
 	 * Returns the application default scores if there is no user high scores
 	 * file.
-	 * 
+	 *
 	 * @return Default high scores.
 	 * @throws IOException
 	 *             In case of loading problems.
@@ -210,7 +236,7 @@ public final class FileManager {
 	/**
 	 * Loads high scores from file, and returns a sorted list of pairs score -
 	 * value.
-	 * 
+	 *
 	 * @return Sorted list of scores - players.
 	 * @throws IOException
 	 *             In case of loading problems.
@@ -263,13 +289,13 @@ public final class FileManager {
 
 	/**
 	 * Saves user high scores to disk.
-	 * 
+	 *
 	 * @param highScores
 	 *            High scores to save.
 	 * @throws IOException
 	 *             In case of loading problems.
 	 */
-	public void saveHighScores(final List<Score> highScores) 
+	public void saveHighScores(final List<Score> highScores)
 			throws IOException {
 		OutputStream outputStream = null;
 		BufferedWriter bufferedWriter = null;
@@ -506,7 +532,7 @@ public final class FileManager {
 	 *            Short currency label, used only for log messages.
 	 */
 	private void saveBalance(final String fileName, final int balance,
-			final String label) {
+							 final String label) {
 		BufferedWriter bufferedWriter = null;
 		try {
 			File balanceFile = getSaveFile(fileName);
