@@ -1037,7 +1037,7 @@ public final class DrawManager {
 	 * Draws the title of a screen reached from the main menu, in the same
 	 * colour and place on every screen. Sets its own colour, so it does not
 	 * depend on what was drawn before it.
-	 * 
+	 *
 	 * @param screen
 	 *            Screen to draw on.
 	 * @param title
