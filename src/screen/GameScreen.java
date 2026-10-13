@@ -1,7 +1,9 @@
 package screen;
 
 
+import java.awt.Color;
 import java.awt.event.KeyEvent;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -21,6 +23,7 @@ import engine.Achievement;
 import engine.DamageDimEffect;
 import engine.GameEvents;
 import engine.GlitchEffect;
+import engine.ScreenShake;
 import entity.Bullet;
 import entity.BulletPool;
 import entity.Coin;
@@ -28,6 +31,7 @@ import entity.CoinPool;
 import entity.EnemyShip;
 import entity.EnemyShipFormation;
 import entity.Entity;
+import entity.Particle;
 import entity.Ship;
 import item.ItemSystem;
 
@@ -86,6 +90,8 @@ public class GameScreen extends Screen {
 	private static final int SEPARATION_LINE_HEIGHT = 40;
 	/** Lives at or below this value start the glitch. */
 	private static final int LOW_HEALTH_LIVES = 1;
+	/** Low-life effect duration (ms). */
+	private static final int LOW_HEALTH_EFFECT_DURATION = 5000;
 	/** Coins awarded when a regular enemy's drop chance succeeds. */
 	private static final int COIN_VALUE = 1;
 	/** Coins guaranteed when the special bonus ship is destroyed. */
@@ -151,12 +157,25 @@ public class GameScreen extends Screen {
 	private long gameStartTime;
 	/** Checks if the level is finished. */
 	private boolean levelFinished;
+	/** Sparkles from destroyed ships. AUTHORED BY: VFX TEAM (Effection) */
+	private List<Particle> particles = new ArrayList<Particle>();
+	/** Colors the sparkles can have. AUTHORED BY: VFX TEAM (Effection) */
+	private static final Color[] SPARKLE_COLORS = { Color.WHITE,
+			Color.YELLOW, Color.ORANGE, Color.CYAN };
 	/** Checks if a bonus life is received. */
 	private boolean bonusLife;
+	/** Timer for the low-life effect. */
+	private Cooldown lowHealthTimer;
+	/** Lives in the last frame. */
+	private int prevLives;
+	/** True while the low-life effect is on. */
+	private boolean lowHealthActive;
 	/** Dims the screen when the player is hit. */
 	private DamageDimEffect damageDim;
 	/** Glitch effect for low health. */
 	private GlitchEffect glitch;
+	/** Screen shake when an enemy is destroyed. */
+	private ScreenShake screenShake;
 	/** Diamonds earned this run but not yet cashed out; lost on death,
 	 * banked into DiamondManager only when the player cashes out. */
 	private int pendingDiamonds;
@@ -214,11 +233,15 @@ public class GameScreen extends Screen {
 		this.enemyShipSpecialExplosionCooldown = Core
 				.getCooldown(BONUS_SHIP_EXPLOSION);
 		this.screenFinishedCooldown = Core.getCooldown(SCREEN_CHANGE_INTERVAL);
+		this.lowHealthTimer = Core.getCooldown(LOW_HEALTH_EFFECT_DURATION);
+		this.prevLives = this.lives;
+		this.lowHealthActive = false;
 		this.bullets = new HashSet<Bullet>();
 		this.damageDim = new DamageDimEffect(900, 0.75f,
         new java.awt.Color(150, 0, 0));  //new update dim effect
 		GameEvents.subscribe(GameEvents.Type.PLAYER_HIT, this.damageDim);
 		this.glitch = new GlitchEffect();
+		this.screenShake = new ScreenShake();
 		this.coins = new HashSet<Coin>();
 		this.achievementPopupQueue = new LinkedList<Achievement>();
 		this.coinDropManager = new CoinDropManager();
@@ -236,6 +259,19 @@ public class GameScreen extends Screen {
 		this.gameStartTime = System.currentTimeMillis();
 		this.inputDelay = Core.getCooldown(INPUT_DELAY);
 		this.inputDelay.reset();
+	}
+
+	/**
+	 * Starts the 5 s low-life effect when lives become 1. Stops on timeout
+	 * or life gain.
+	 * AUTHORED BY: VFX TEAM (Effection)
+	 */
+	private void updateLowHealthEffect() {
+		boolean lowHealth = this.lives > 0 && this.lives <= LOW_HEALTH_LIVES;
+		if (lowHealth && this.lives != this.prevLives)
+			this.lowHealthTimer.reset();
+		this.prevLives = this.lives;
+		this.lowHealthActive = lowHealth && !this.lowHealthTimer.checkFinished();
 	}
 
 	/**
@@ -321,8 +357,8 @@ public class GameScreen extends Screen {
 			 *
 			 * Ship blinks when lives remain 1.
 			 */
-			this.ship.setBlinking(this.lives > 0
-					&& this.lives <= LOW_HEALTH_LIVES);
+			updateLowHealthEffect();
+			this.ship.setBlinking(this.lowHealthActive);
 		}
 
 		// Item System (Team CS): drops fall/expire, pickups, effect timers.
@@ -331,6 +367,7 @@ public class GameScreen extends Screen {
 				&& !this.ship.isDestroyed());
 		manageCollisions();
 		cleanBullets();
+		updateParticles(); // AUTHORED BY: VFX TEAM (Effection)
 		updateCoins();
 		handleItemEvents();
 		updateAchievementPopup();
@@ -519,6 +556,11 @@ public class GameScreen extends Screen {
 	private void draw() {
 		drawManager.initDrawing(this);
 
+		// Screen shake: move game world only. AUTHORED BY: VFX TEAM (Effection)
+		this.screenShake.update();
+		drawManager.setWorldOffset(this.screenShake.getOffsetX(),
+				this.screenShake.getOffsetY());
+
 		drawManager.drawEntity(this.ship, this.ship.getPositionX(),
 				this.ship.getPositionY());
 		drawManager.drawItemShield(this.ship, this.items); // Item System (Team CS)
@@ -529,16 +571,27 @@ public class GameScreen extends Screen {
 
 		enemyShipFormation.draw();
 
+		// Hit sparkles. AUTHORED BY: VFX TEAM (Effection)
+		for (Particle particle : this.particles)
+			drawManager.drawParticle(particle);
+
 		for (Bullet bullet : this.bullets)
 			drawManager.drawEntity(bullet, bullet.getPositionX(),
 					bullet.getPositionY());
+		// Stop shake offset before full-screen dim.
+		drawManager.setWorldOffset(0, 0);
 		// Damage dim (under HUD, so score/lives stay bright). AUTHORED BY: VFX TEAM (Effection)
 		drawManager.drawDamageDim(this, this.damageDim);
 
+		// Coins are part of the game world, so they shake too.
+		drawManager.setWorldOffset(this.screenShake.getOffsetX(),
+				this.screenShake.getOffsetY());
 		for (Coin coin : this.coins)
 			drawManager.drawCoin(coin, coin.getPositionX(),
 					coin.getPositionY());
 		drawManager.drawItemDrops(this.items); // Item System (Team CS)
+		// HUD must stay still: remove shake offset.
+		drawManager.setWorldOffset(0, 0);
 
 		// Interface.
 		drawManager.drawScore(this, this.score);
@@ -548,8 +601,7 @@ public class GameScreen extends Screen {
 		drawManager.drawHorizontalLine(this, SEPARATION_LINE_HEIGHT - 1);
 		drawManager.drawItemHud(this, this.items); // Item System (Team CS)
 		// Low-health glitch (covers game + HUD). AUTHORED BY: VFX TEAM (Effection)
-		this.glitch.setEnabled(this.lives > 0
-				&& this.lives <= LOW_HEALTH_LIVES && !this.levelFinished);
+		this.glitch.setEnabled(this.lowHealthActive && !this.levelFinished);
 		drawManager.drawGlitch(this, this.glitch);
 		// Countdown to game start.
 		if (!this.inputDelay.checkFinished()) {
@@ -580,6 +632,33 @@ public class GameScreen extends Screen {
 					ACHIEVEMENT_POPUP_SLIDE_OUT);
 
 		drawManager.completeDrawing(this);
+	}
+
+	/**
+	 * Scatters sparkles from the center of a destroyed ship.
+	 * AUTHORED BY: VFX TEAM (Effection)
+	 *
+	 * @param ship
+	 *            Ship that was destroyed.
+	 */
+	private void spawnSparkles(final EnemyShip ship) {
+		float centerX = ship.getPositionX() + ship.getWidth() / 2f;
+		float centerY = ship.getPositionY() + ship.getHeight() / 2f;
+		for (int i = 0; i < 14; i++) {
+			Color color = SPARKLE_COLORS[(int) (Math.random()
+					* SPARKLE_COLORS.length)];
+			this.particles.add(new Particle(centerX, centerY, color));
+		}
+	}
+
+	/**
+	 * Moves the sparkles and removes the ones that faded away.
+	 * AUTHORED BY: VFX TEAM (Effection)
+	 */
+	private void updateParticles() {
+		for (Particle particle : this.particles)
+			particle.update();
+		this.particles.removeIf(Particle::isDead);
 	}
 
 	/**
@@ -621,7 +700,9 @@ public class GameScreen extends Screen {
 							&& checkCollision(bullet, enemyShip)) {
 						this.score += enemyShip.getPointValue();
 						this.shipsDestroyed++;
+						spawnSparkles(enemyShip); // AUTHORED BY: VFX TEAM (Effection)
 						this.enemyShipFormation.destroy(enemyShip);
+						this.screenShake.trigger();
 						maybeDropCoin(enemyShip);
 						this.items.onEnemyDefeated(enemyShip, false);
 						showUnlockedAchievement(Core.getAchievementManager()
@@ -633,7 +714,9 @@ public class GameScreen extends Screen {
 						&& checkCollision(bullet, this.enemyShipSpecial)) {
 					this.score += this.enemyShipSpecial.getPointValue();
 					this.shipsDestroyed++;
+					spawnSparkles(this.enemyShipSpecial); // AUTHORED BY: VFX TEAM (Effection)
 					this.enemyShipSpecial.destroy();
+					this.screenShake.trigger();
 					dropCoin(this.enemyShipSpecial, BONUS_COIN_VALUE);
 					this.items.onEnemyDefeated(this.enemyShipSpecial, true);
 					showUnlockedAchievement(Core.getAchievementManager()
