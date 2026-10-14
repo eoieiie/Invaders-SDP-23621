@@ -78,6 +78,26 @@ public class SettingsScreen extends Screen {
 				this.selectionCooldown.reset();
 			}
 		}
+
+		if (this.inputManager.isMouseMoved()) {
+			int mouseY = this.inputManager.getMouseY();
+			for (int row = 0; row < 2; row++)
+				if (this.drawManager.isOnMenuRow(rowBaseline(row), SPACING,
+						mouseY))
+					currentMenuItem = row;
+		}
+	}
+
+	/**
+	 * Baseline of a row, counted from the first volume row. Drawing and
+	 * mouse hover both use this, so they cannot drift apart.
+	 *
+	 * @param row
+	 *            Row index, from the top.
+	 * @return Baseline of the row's text.
+	 */
+	private int rowBaseline(final int row) {
+		return this.getHeight() / 3 + SPACING * row;
 	}
 
 	/**
@@ -87,7 +107,6 @@ public class SettingsScreen extends Screen {
 		this.drawManager.initDrawing(this);
 		this.drawManager.drawScreenTitle(
 				this, MenuItem.SETTINGS.getTitle());
-		int baseY = this.getHeight() / 3;
 		String bgmStr = "BGM Volume: < " + bgmVolume + "% >";
 		String sfxStr = "SFX Volume: < " + sfxVolume + "% >";
 
@@ -95,21 +114,21 @@ public class SettingsScreen extends Screen {
         String m1 = (currentMenuItem == 1 ? "> " + sfxStr + " <" : sfxStr);
 		String m2 = "Key Bindings";
 
-		this.drawManager.drawMenuRow(this, m0, baseY,
+		this.drawManager.drawMenuRow(this, m0, rowBaseline(0),
 				currentMenuItem == 0);
-		this.drawManager.drawMenuRow(this, m1, baseY + SPACING,
+		this.drawManager.drawMenuRow(this, m1, rowBaseline(1),
 				currentMenuItem == 1);
 
-		this.drawManager.drawMenuRow(this, m2, baseY + SPACING * 3, false);
+		this.drawManager.drawMenuRow(this, m2, rowBaseline(3), false);
 
 		this.drawManager.drawMenuRow(this, "- Move Left: A / Left Arrow -",
-				baseY + SPACING * 4, false);
+				rowBaseline(4), false);
 		this.drawManager.drawMenuRow(this, "- Move Right: D / Right Arrow -",
-				baseY + SPACING * 5, false);
+				rowBaseline(5), false);
 		this.drawManager.drawMenuRow(this, "- Shoot: Space -",
-				baseY + SPACING * 6, false);
+				rowBaseline(6), false);
 		this.drawManager.drawMenuRow(this, "- Back: ESC -",
-				baseY + SPACING * 7, false);
+				rowBaseline(7), false);
 		this.drawManager.drawKeyHints(this, "arrows adjust, esc back");
 
 		this.drawManager.completeDrawing(this);
