@@ -23,6 +23,7 @@ import engine.Achievement;
 import engine.DamageDimEffect;
 import engine.GameEvents;
 import engine.GlitchEffect;
+import engine.PurchaseManager;
 import engine.ScreenShake;
 import engine.PointsEffect;
 import entity.Bullet;
@@ -232,6 +233,8 @@ public class GameScreen extends Screen {
 	private ItemSystem items;
 	/** Item slot keys (1-9) held last frame, so holding a key uses it once. */
 	private boolean[] itemSlotKeysHeld = new boolean[9];
+	/** Skin chosen in Customize; animated skins change colour each frame (GoG). */
+	private shop.Skin skin;
 	/** Whether gameplay is currently paused. */
 	private boolean paused;
 	/** Debounces the pause key so holding it doesn't toggle every frame. */
@@ -304,6 +307,9 @@ public class GameScreen extends Screen {
 		enemyShipFormation.attach(this);
 		this.ship = new Ship(this.width / 2, this.height - 30,
 				Core.getSelectedShipType());
+		// Skin chosen in Customize (GoG - Currency System).
+		this.skin = PurchaseManager.getInstance().getSelectedSkin();
+		this.ship.setSkinColor(this.skin.getColor());
 		// Appears each 10-30 seconds.
 		this.enemyShipSpecialCooldown = Core.getVariableCooldown(
 				BONUS_SHIP_INTERVAL, BONUS_SHIP_VARIANCE);
@@ -382,9 +388,14 @@ public class GameScreen extends Screen {
 	 */
 	protected final void update() {
 		super.update();
-		// Item System (Team CS): item bonuses on top of the base fire rate/bullet speed.
-		this.ship.setItemBonuses(this.items.fireRateBonus(),
-				this.items.bulletSpeedBonus());
+		// Item System (Team CS): item bonuses on top of the base fire rate,
+		// bullet speed and movement speed (stacks and the boost item).
+		this.ship.setItemBonuses(
+				this.items.fireRateBonus(this.ship.getBaseFireRate()),
+				this.items.bulletSpeedBonus(),
+				this.items.movementSpeedBonus(this.ship.getBaseSpeed()));
+		// Animated skins (GoG); plain skins return the same colour.
+		this.ship.setSkinColor(this.skin.colorAt(System.currentTimeMillis()));
 
 		if (inputManager.isKeyDown(KeyEvent.VK_P)
 				&& this.pauseKeyCooldown.checkFinished()) {
@@ -897,7 +908,7 @@ public class GameScreen extends Screen {
 				for (EnemyShip enemyShip : this.enemyShipFormation)
 					if (!enemyShip.isDestroyed()
 							&& checkCollision(bullet, enemyShip)) {
-						this.score += enemyShip.getPointValue();
+						this.score += this.items.scoreFor(enemyShip.getPointValue()); // score boost (Team CS)
 						this.shipsDestroyed++;
 						spawnSparkles(enemyShip); // AUTHORED BY: VFX TEAM (Effection)
 						this.enemyShipFormation.destroy(enemyShip);
@@ -915,7 +926,7 @@ public class GameScreen extends Screen {
 				if (this.enemyShipSpecial != null
 						&& !this.enemyShipSpecial.isDestroyed()
 						&& checkCollision(bullet, this.enemyShipSpecial)) {
-					this.score += this.enemyShipSpecial.getPointValue();
+					this.score += this.items.scoreFor(this.enemyShipSpecial.getPointValue()); // score boost (Team CS)
 					this.shipsDestroyed++;
 					spawnSparkles(this.enemyShipSpecial); // AUTHORED BY: VFX TEAM (Effection)
 					this.enemyShipSpecial.destroy();

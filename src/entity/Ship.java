@@ -63,6 +63,31 @@ public class Ship extends Entity {
             this.shootingInterval = shootingInterval;
             this.idleSprite = idleSprite;
         }
+
+        /**
+         * Read-only stats, so the Shop and Customize screens can show them
+         * without keeping their own copy (GoG - Currency System).
+         *
+         * @return Movement of the ship for each unit of time.
+         */
+        public int getSpeed() {
+            return this.speed;
+        }
+
+        /** @return Time between shots, in milliseconds. */
+        public int getShootingInterval() {
+            return this.shootingInterval;
+        }
+
+        /** @return Bullets fired per shot. */
+        public int getBulletsPerShot() {
+            return this == TWO_WAY ? 2 : 1;
+        }
+
+        /** @return Sprite of the ship while it is not destroyed. */
+        public SpriteType getIdleSprite() {
+            return this.idleSprite;
+        }
     }
 	
 	/** Type of this ship. */
@@ -77,6 +102,9 @@ public class Ship extends Entity {
 	private static final Color BASE_COLOR = Color.GREEN;
 	private static final Color BLINK_COLOR = new Color(255, 60, 60);
 
+	/** Colour of the ship when not blinking; changed by skins (GoG). */
+	private Color skinColor = BASE_COLOR;
+
 	/** Minimum time between shots. */
 	private Cooldown shootingCooldown;
 	/** Time spent inactive between hits. */
@@ -85,6 +113,8 @@ public class Ship extends Entity {
 	private double itemFireRateBonus;
 	/** Extra bullet speed from items, added to the base speed (Team CS). */
 	private double itemBulletSpeedBonus;
+	/** Extra movement speed from items, added to the base speed (Team CS). */
+	private int itemMovementSpeedBonus;
 
 	/**
 	 * AUTHORED BY: VFX TEAM (effection)
@@ -136,7 +166,7 @@ public class Ship extends Entity {
 	 * reached.
 	 */
 	public final void moveRight() {
-		this.positionX += this.type.speed;
+		this.positionX += getSpeed();
 	}
 
 	/**
@@ -144,7 +174,7 @@ public class Ship extends Entity {
 	 * reached.
 	 */
 	public final void moveLeft() {
-		this.positionX -= this.type.speed;
+		this.positionX -= getSpeed();
 	}
 
 	/**
@@ -187,6 +217,25 @@ public class Ship extends Entity {
 	 */
 	public final void setItemBonuses(final double fireRateBonus,
 			final double bulletSpeedBonus) {
+		setItemBonuses(fireRateBonus, bulletSpeedBonus, 0);
+	}
+
+	/**
+	 * Same as {@link #setItemBonuses(double, double)}, plus extra movement
+	 * speed (e.g. the boost item), added on top of the base speed and rounded
+	 * to whole pixels per frame.
+	 *
+	 * @param fireRateBonus
+	 *            Extra shots per second.
+	 * @param bulletSpeedBonus
+	 *            Extra bullet speed in pixels per frame.
+	 * @param movementSpeedBonus
+	 *            Extra movement speed in pixels per frame.
+	 */
+	public final void setItemBonuses(final double fireRateBonus,
+			final double bulletSpeedBonus, final double movementSpeedBonus) {
+		this.itemMovementSpeedBonus = (int) Math.round(Math.max(0,
+				movementSpeedBonus));
 		this.itemBulletSpeedBonus = Math.max(0, bulletSpeedBonus);
 		double bonus = Math.max(0, fireRateBonus);
 		if (bonus != this.itemFireRateBonus) {
@@ -195,6 +244,19 @@ public class Ship extends Entity {
 			this.shootingCooldown = Core.getCooldown((int) Math.round(
 					1000.0 / (1000.0 / this.type.shootingInterval + bonus)));
 		}
+	}
+
+	/**
+	 * Paints the ship in a skin colour (GoG - Currency System). The
+	 * low-health blink still flashes red and returns to this colour.
+	 *
+	 * @param color
+	 *            Skin colour; null goes back to the standard green.
+	 */
+	public final void setSkinColor(final Color color) {
+		this.skinColor = color == null ? BASE_COLOR : color;
+		if (!this.blinkOn)
+			setColor(this.skinColor);
 	}
 
 	/**
@@ -213,7 +275,7 @@ public class Ship extends Entity {
 		 */
 		if (this.blinking && this.blinkCooldown.checkFinished()) {
 			this.blinkOn = !this.blinkOn;
-			setColor(this.blinkOn ? BLINK_COLOR : BASE_COLOR);
+			setColor(this.blinkOn ? BLINK_COLOR : this.skinColor);
 			this.blinkCooldown.reset();
 		}
 	}
@@ -231,7 +293,7 @@ public class Ship extends Entity {
 			return;
 		this.blinking = blinking;
 		this.blinkOn = false;
-		setColor(BASE_COLOR);
+		setColor(this.skinColor);
 		this.blinkCooldown.reset();
 	}
 
@@ -253,13 +315,31 @@ public class Ship extends Entity {
 
 	/**
 	 * Getter for the ship's speed.
-	 * 
-	 * @return Speed of the ship.
+	 *
+	 * @return Speed of the ship, including any item bonus.
 	 */
 	public final int getSpeed() {
-		return this.type.speed; 
+		return this.type.speed + this.itemMovementSpeedBonus;
 	}
-	
+
+	/**
+	 * Base movement speed without item bonuses (Team CS - Item System).
+	 *
+	 * @return Base speed in pixels per frame.
+	 */
+	public final int getBaseSpeed() {
+		return this.type.speed;
+	}
+
+	/**
+	 * Base fire rate without item bonuses (Team CS - Item System).
+	 *
+	 * @return Base shots per second.
+	 */
+	public final double getBaseFireRate() {
+		return 1000.0 / this.type.shootingInterval;
+	}
+
 	/**
 	 * Getter for the ship's type.
 	 * 
