@@ -747,13 +747,36 @@ public final class DrawManager {
 			return null;
 		int spacing = menuItemSpacing();
 		for (MenuItem item : MenuItem.values()) {
-			int top = menuItemBaseline(screen, item.ordinal())
-					- fontRegularMetrics.getAscent()
-					- (spacing - fontRegularMetrics.getHeight()) / 2;
-			if (positionY >= top && positionY < top + spacing)
+			if (isOnMenuRow(menuItemBaseline(screen, item.ordinal()),
+					spacing, positionY))
 				return item;
 		}
 		return null;
+	}
+
+	/**
+	 * Checks whether a height falls on a row of regular text. The row is
+	 * centred on the text and as tall as the gap to the next row, so rows
+	 * touch and the whole width is hoverable, not just the glyphs. Screens
+	 * pass the same baseline they draw at, so drawing and hit-testing
+	 * cannot drift apart.
+	 *
+	 * @param baseline
+	 *            Baseline the row's text is drawn at.
+	 * @param rowHeight
+	 *            Distance between this row and the next one.
+	 * @param positionY
+	 *            Height to check, in screen coordinates.
+	 * @return True if the height is on the row, false otherwise or if
+	 *         nothing has been drawn yet.
+	 */
+	public boolean isOnMenuRow(final int baseline, final int rowHeight,
+			final int positionY) {
+		if (fontRegularMetrics == null)
+			return false;
+		int top = baseline - fontRegularMetrics.getAscent()
+				- (rowHeight - fontRegularMetrics.getHeight()) / 2;
+		return positionY >= top && positionY < top + rowHeight;
 	}
 
 	/**
