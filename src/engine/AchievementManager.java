@@ -22,7 +22,7 @@ public class AchievementManager {
 	/** The id we use for the weakest ship. */
 	public static final String STARTER_SHIP_ID = "starter";
 	/** Level that must be cleared to unlock Endless Mode. */
-	private static final int ENDLESS_UNLOCK_LEVEL = 10;
+	private static final int ENDLESS_UNLOCK_LEVEL = 7;
 	/** Identifier of the Infinity Void achievement. */
 	private static final String INFINITY_VOID_ID = "infinity_void";
 
@@ -108,7 +108,7 @@ public class AchievementManager {
 	 * */
 	private void addFleetMasterAchievement(){
 		this.level10AllShips = new Achievement(LEVEL10_ALL_SHIPS_ID,
-				"Fleet Master", "Clear level 10 with every ship.", 0,
+				"Fleet Master", "Clear level 7 with every ship.", 0,
 				SpriteType.FleetMaster,
 				this.playerProfile.isAchievementUnlocked(LEVEL10_ALL_SHIPS_ID),
 				Requirement.LEVEL10_ALL_SHIPS);
@@ -201,7 +201,7 @@ public class AchievementManager {
 	 */
 	public final Achievement recordLevelCompleted(final int level,
 			final String shipId, final boolean victory) {
-		if (!victory || level != 10 || !this.level10RosterConfigured
+		if (!victory || level != 7|| !this.level10RosterConfigured
 				|| !this.requiredLevel10Ships.contains(shipId))
 			return null;
 		boolean changed = this.playerProfile.recordLevel10Completed(shipId);

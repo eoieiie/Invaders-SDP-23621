@@ -16,7 +16,7 @@ Our team wants to incorporate sound effects to enhance player engagement and cre
 | Valentin HEBRAS LECLERC            | Software Developer     | [Valentin HEBRAS LECLERC](https://github.com/Valzzzzzzzzzz) |
 | Erwan GUILLEM                      | Soundeffect            | [R2D2-4997](https://github.com/R2D2-4997)                   |
 | Solal Coupin Dagnet                | Background effects     | [solal67](https://github.com/solal67)                       |
-| Lee Inseob                           | Software Developer     | [liss1110](https://github.com/liss1110)                      |
+| Lee Inseob                         | Soundeffect            | [liss1110](https://github.com/liss1110)                     |
 
 ## Team Requirements
 Our team is responsible for the overall design, integration, and management of the project's audio system. This work involves setting up an audio framework to manage playback, volume, and audio channels across the application.

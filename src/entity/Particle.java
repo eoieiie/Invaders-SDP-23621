@@ -41,6 +41,14 @@ public class Particle {
     }
 
     public final boolean isDead() { return getAlpha() <= 0f; }
+
+        /** True while any part of the particle is inside the given area. */
+    public final boolean isInside(final int minX, final int minY,
+            final int maxX, final int maxY) {
+        return this.x + this.size > minX && this.x < maxX
+                && this.y + this.size > minY && this.y < maxY;
+    }
+    
     public final int getX() { return Math.round(this.x); }
     public final int getY() { return Math.round(this.y); }
     public final int getSize() { return this.size; }
