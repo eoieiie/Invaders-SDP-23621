@@ -3,6 +3,8 @@ package screen;
 import engine.Cooldown;
 import engine.Core;
 import java.awt.event.KeyEvent;
+import engine.soundEngine.Sound;
+import engine.soundEngine.SoundManager;
 
 /**
  * Implements the settings screen.
@@ -14,10 +16,8 @@ public class SettingsScreen extends Screen {
 	private static final int SPACING = 30;
 	/** Cooldown for menu selection and volume changes. */
 	private final Cooldown selectionCooldown;
-	/** Current background music volume. */
-	private int bgmVolume = 50;
-	/** Current sound effects volume. */
-	private int sfxVolume = 50;
+	/** get volume from soundManager */
+	private final SoundManager soundManager = SoundManager.getInstance();
 	/** Current selected menu item. */
 	private int currentMenuItem = 0;
 
@@ -38,6 +38,22 @@ public class SettingsScreen extends Screen {
 		this.selectionCooldown.reset();
 	}
 
+	/** Returns the current volume as a percentage. */
+	private int getVolumePercent(final Sound.Category category) {
+		return Math.round(this.soundManager.getVolume(category) * 100f);
+	}
+
+	/** Adjusts the selected category by the given percentage points. */
+	private void adjustSelectedVolume(final int delta) {
+		Sound.Category category = this.currentMenuItem == 0
+				? Sound.Category.BGM
+				: Sound.Category.SFX;
+
+		int percent = Math.max(0,
+				Math.min(100, getVolumePercent(category) + delta));
+
+		this.soundManager.setVolume(category, percent / 100f);
+	}
 	/**
 	 * Starts the action.
 	 *
@@ -69,12 +85,10 @@ public class SettingsScreen extends Screen {
 			}
 
 			if (this.inputManager.isKeyDown(KeyEvent.VK_LEFT)) {
-				if (currentMenuItem == 0) bgmVolume = Math.max(0, bgmVolume - 10);
-				else if (currentMenuItem == 1) sfxVolume = Math.max(0, sfxVolume - 10);
+				adjustSelectedVolume(-10);
 				this.selectionCooldown.reset();
 			} else if (this.inputManager.isKeyDown(KeyEvent.VK_RIGHT)) {
-				if (currentMenuItem == 0) bgmVolume = Math.min(100, bgmVolume + 10);
-				else if (currentMenuItem == 1) sfxVolume = Math.min(100, sfxVolume + 10);
+				adjustSelectedVolume(10);
 				this.selectionCooldown.reset();
 			}
 		}
@@ -107,6 +121,10 @@ public class SettingsScreen extends Screen {
 		this.drawManager.initDrawing(this);
 		this.drawManager.drawScreenTitle(
 				this, MenuItem.SETTINGS.getTitle());
+
+		int bgmVolume = getVolumePercent(Sound.Category.BGM);
+		int sfxVolume = getVolumePercent(Sound.Category.SFX);
+
 		String bgmStr = "BGM Volume: < " + bgmVolume + "% >";
 		String sfxStr = "SFX Volume: < " + sfxVolume + "% >";
 
