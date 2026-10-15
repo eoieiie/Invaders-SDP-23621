@@ -125,16 +125,13 @@ public class SettingsScreen extends Screen {
 		int bgmVolume = getVolumePercent(Sound.Category.BGM);
 		int sfxVolume = getVolumePercent(Sound.Category.SFX);
 
-		String bgmStr = "BGM Volume: < " + bgmVolume + "% >";
-		String sfxStr = "SFX Volume: < " + sfxVolume + "% >";
-
-        String m0 = (currentMenuItem == 0 ? "> " + bgmStr + " <" : bgmStr);
-        String m1 = (currentMenuItem == 1 ? "> " + sfxStr + " <" : sfxStr);
+		String bgmStr = "BGM Volume: " + bgmVolume + "%";
+		String sfxStr = "SFX Volume: " + sfxVolume + "%";
 		String m2 = "Key Bindings";
 
-		this.drawManager.drawMenuRow(this, m0, rowBaseline(0),
+		this.drawManager.drawMenuRow(this, bgmStr, rowBaseline(0),
 				currentMenuItem == 0);
-		this.drawManager.drawMenuRow(this, m1, rowBaseline(1),
+		this.drawManager.drawMenuRow(this, sfxStr, rowBaseline(1),
 				currentMenuItem == 1);
 
 		this.drawManager.drawMenuRow(this, m2, rowBaseline(3), false);

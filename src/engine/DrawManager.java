@@ -1611,13 +1611,19 @@ public final class DrawManager {
 	public void drawMenuRow(final Screen screen, final String string,
 							final int height, final boolean selected,
 							final boolean enabled) {
-		if (selected)
+		if (selected) {
+			String text = "> " + string + " <";
 			backBufferGraphics.setColor(Color.GREEN);
-		else if (!enabled)
-			backBufferGraphics.setColor(Color.DARK_GRAY);
-		else
-			backBufferGraphics.setColor(Color.WHITE);
-		drawCenteredRegularString(screen, string, height);
+			backBufferGraphics.setFont(fontSelected);
+			backBufferGraphics.drawString(text,
+					(screen.getWidth()
+							- fontSelectedMetrics.stringWidth(text)) / 2,
+					height);
+		} else {
+			backBufferGraphics.setColor(
+					enabled ? Color.WHITE : Color.DARK_GRAY);
+			drawCenteredRegularString(screen, string, height);
+		}
 	}
 
 	/**
