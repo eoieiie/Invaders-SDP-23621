@@ -19,18 +19,21 @@ public interface ShopListener {
 	 *            Entry that was bought.
 	 * @param level
 	 *            How many the player has now: 1 for ships and skins, the new
-	 *            level for upgrades.
+	 *            level for upgrades. Upgrades have no levels any more (Item
+	 *            System rule), so this is always 1.
 	 */
 	default void onPurchased(final ShopItem item, final int level) {
 	}
 
 	/**
-	 * An upgrade was bought, levelled up, or switched on/off (Item team).
+	 * An upgrade was bought or switched on/off (Item team). Switching one on
+	 * switches the others off, and each of those is reported too.
 	 *
 	 * @param itemId
 	 *            Item System item id, e.g. "magnet".
 	 * @param activeLevel
-	 *            Level to apply in game: 0 when off or not owned.
+	 *            Level to apply in game: 0 when off or not owned. Upgrades
+	 *            have no levels any more (Item System rule), so 1 means on.
 	 */
 	default void onUpgradeChanged(final String itemId, final int activeLevel) {
 	}

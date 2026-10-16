@@ -75,29 +75,29 @@ final class ItemBalance {
     }
 
     ItemBalance(Properties settings) {
-        shieldDurationMillis = positiveLong(settings, "shield.durationMillis", 10_000L);
+        shieldDurationMillis = positiveLong(settings, "shield.durationMillis", 8_000L);
         shieldCharges = positiveInt(settings, "shield.charges", 1);
         rapidFireBonus = positiveDouble(settings, "rapidFire.bonus", 0.5);
-        rapidFireMaxStacks = positiveInt(settings, "rapidFire.maxStacks", 10);
+        rapidFireMaxStacks = positiveInt(settings, "rapidFire.maxStacks", 6);
         rapidFireDropDecay = probability(settings, "rapidFire.dropDecay", 0.7);
-        bulletSpeedBonus = positiveDouble(settings, "bulletSpeed.bonus", 1.0);
-        bulletSpeedMaxStacks = positiveInt(settings, "bulletSpeed.maxStacks", 10);
+        bulletSpeedBonus = positiveDouble(settings, "bulletSpeed.bonus", 1.5);
+        bulletSpeedMaxStacks = positiveInt(settings, "bulletSpeed.maxStacks", 6);
         bulletSpeedDropDecay = probability(settings, "bulletSpeed.dropDecay", 0.7);
-        freezeDurationMillis = positiveLong(settings, "freeze.durationMillis", 5_000L);
-        boostDurationMillis = positiveLong(settings, "boost.durationMillis", 5_000L);
+        freezeDurationMillis = positiveLong(settings, "freeze.durationMillis", 4_000L);
+        boostDurationMillis = positiveLong(settings, "boost.durationMillis", 7_000L);
         boostMultiplier = multiplier(settings, "boost.multiplier", 1.5);
-        scoreBoostDurationMillis = positiveLong(settings, "scoreBoost.durationMillis", 10_000L);
+        scoreBoostDurationMillis = positiveLong(settings, "scoreBoost.durationMillis", 7_000L);
         scoreBoostMultiplier = multiplier(settings, "scoreBoost.multiplier", 2.0);
         shopBoostPriceCoins = positiveInt(settings, "shop.boost.priceCoins", 10);
         shopScoreBoostPriceCoins = positiveInt(settings, "shop.scoreBoost.priceCoins", 20);
 
         maxLives = positiveInt(settings, "life.maxLives", 3);
-        lifeCapBonusScore = nonNegativeInt(settings, "life.capBonusScore", 500);
+        lifeCapBonusScore = nonNegativeInt(settings, "life.capBonusScore", 200);
 
         regularDropProbability = probability(settings, "drop.regular.probability", 0.15);
         specialDropProbability = probability(settings, "drop.special.probability", 1.0);
         Map<String, Double> weights = new LinkedHashMap<String, Double>();
-        weights.put("life", weight(settings, "drop.weight.life"));
+        weights.put("life", weight(settings, "drop.weight.life", 0.6));
         weights.put("shield", weight(settings, "drop.weight.shield"));
         weights.put("rapid_fire", weight(settings, "drop.weight.rapidFire"));
         weights.put("bullet_speed", weight(settings, "drop.weight.bulletSpeed"));
@@ -113,9 +113,9 @@ final class ItemBalance {
         inventoryCapacity = positiveInt(settings, "inventory.capacity", 3);
 
         extraSlotsAmount = positiveInt(settings, "equip.extraSlots.amount", 1);
-        magnetConvertScore = positiveInt(settings, "equip.magnet.convertScore", 100);
+        magnetConvertScore = positiveInt(settings, "equip.magnet.convertScore", 50);
         maxLifeAmount = positiveInt(settings, "equip.maxLife.amount", 1);
-        longLastingExtraMillis = positiveLong(settings, "equip.longLasting.extraMillis", 1_500L);
+        longLastingExtraMillis = positiveLong(settings, "equip.longLasting.extraMillis", 3_000L);
     }
 
     private static String raw(Properties settings, String key) {
@@ -164,7 +164,11 @@ final class ItemBalance {
     }
 
     private static double weight(Properties settings, String key) {
-        double value = number(settings, key, 1.0);
+        return weight(settings, key, 1.0);
+    }
+
+    private static double weight(Properties settings, String key, double fallback) {
+        double value = number(settings, key, fallback);
         if (value < 0) throw invalid(key, value, ">= 0");
         return value;
     }

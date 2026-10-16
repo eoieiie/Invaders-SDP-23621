@@ -133,10 +133,44 @@ public class CashOutScreen extends Screen {
 		this.drawManager.drawCenteredRegularString(this,
 				"Diamonds banked", this.height / 2 + 25);
 
+		drawRiskPreview(this.height / 2 + 60);
+
 		this.drawManager.drawKeyHints(this, "esc cash out and end run");
 		this.drawManager.drawCenteredRegularString(this, "space risk it on level "
 				+ this.nextLevel, this.height - 45);
 
 		this.drawManager.completeDrawing(this);
+	}
+
+	/**
+	 * Diamonds the player would have pending after clearing the next level:
+	 * what is at risk now plus that level's reward (level N is worth N).
+	 *
+	 * @return Pending diamonds if the next level is cleared.
+	 */
+	final int diamondsIfNextLevelCleared() {
+		return (int) Math.min(Integer.MAX_VALUE,
+				(long) this.pendingDiamonds + this.nextLevel);
+	}
+
+	/**
+	 * Draws what continuing is worth, so the player can weigh the risk
+	 * instead of guessing: the next level's reward, the pending total if
+	 * they clear it, and whether that total would be banked automatically
+	 * because it is the final level.
+	 *
+	 * @param positionY
+	 *            Y position of the first line.
+	 */
+	private void drawRiskPreview(final int positionY) {
+		this.drawManager.drawCenteredRegularString(this, "Clear level "
+				+ this.nextLevel + " for +" + this.nextLevel + " diamonds",
+				positionY);
+		String outcome = this.nextLevel >= Core.getNumLevels()
+				? "Final level: " + diamondsIfNextLevelCleared()
+						+ " banked automatically"
+				: "Then " + diamondsIfNextLevelCleared() + " at risk";
+		this.drawManager.drawCenteredRegularString(this, outcome,
+				positionY + 20);
 	}
 }

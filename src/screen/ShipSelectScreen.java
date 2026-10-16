@@ -273,7 +273,7 @@ public class ShipSelectScreen extends Screen {
 			PurchaseManager loadout = PurchaseManager.getInstance();
 			if (!loadout.isOwned(upgrade))
 				return upgrade.getName();
-			return upgrade.getName() + " Lv" + loadout.getQuantity(upgrade)
+			return upgrade.getName()
 					+ (loadout.isUpgradeOn(upgrade.getRef()) ? " ON" : " OFF");
 		}
 	}
@@ -323,8 +323,8 @@ public class ShipSelectScreen extends Screen {
 		drawInfo();
 
 		drawManager.drawKeyHints(this, this.row == Row.UPGRADE
-				? "up/down row | left/right browse | space on/off | esc back"
-				: "up/down row | left/right change | esc back");
+				? "up/down row, left/right browse, space on/off, esc back"
+				: "up/down row, left/right change, esc back");
 
 		drawManager.completeDrawing(this);
 	}
