@@ -9,6 +9,10 @@ package shop;
  * to level them up, and each level costs a step more than the one before:
  * level n costs base + step * (n - 1).
  *
+ * Levels are kept for other entries that may need them, but no entry uses
+ * them now: upgrades follow the Item System rule (no levels), so ships,
+ * skins and upgrades all have max level 1 and no step.
+ *
  * @author GoG - Currency System
  */
 public final class ShopItem {

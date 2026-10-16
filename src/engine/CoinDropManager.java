@@ -16,8 +16,10 @@ import java.util.Random;
  */
 public final class CoinDropManager {
 
-	/** Default chance of a coin dropping after a kill (1 in 10). */
-	public static final double DEFAULT_DROP_CHANCE = 0.10d;
+	/** Default chance of a coin dropping after a kill, read from
+	 * res/economy.properties (10%, i.e. 1 in 10, if not set). */
+	public static final double DEFAULT_DROP_CHANCE = EconomyConfig
+			.getInstance().getCoinDropChance();
 
 	/** Currently configured drop chance, between 0.0 and 1.0. */
 	private double dropChance;
@@ -25,8 +27,8 @@ public final class CoinDropManager {
 	private final Random random;
 
 	/**
-	 * Constructor, uses the default drop chance (10%) and a new random
-	 * source.
+	 * Constructor, uses the configured drop chance (see
+	 * {@link EconomyConfig}) and a new random source.
 	 */
 	public CoinDropManager() {
 		this(DEFAULT_DROP_CHANCE, new Random());

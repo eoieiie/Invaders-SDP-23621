@@ -86,17 +86,18 @@ public final class ShopCatalog {
 			if (skin != Skin.CLASSIC)
 				items.add(skin(skin));
 
-		// Upgrades (Item team): up to level 3, either currency.
-		// upgrade(id, name, description, coins Lv1, +coins per level,
-		// diamonds Lv1, +diamonds per level, max level)
+		// Upgrades (Item team): either currency. Item System rule: equipped
+		// items have no levels, so each one is bought once and only one is
+		// on at a time.
+		// upgrade(id, name, description, coins, diamonds)
 		items.add(upgrade("extra_slots", "Extra Slots", "More item slots"
-				+ " in every run.", 60, 30, 30, 15, 3));
+				+ " in every run.", 60, 30));
 		items.add(upgrade("magnet", "Magnet", "Picks up items as soon as"
-				+ " they land.", 50, 25, 25, 12, 3));
+				+ " they land.", 50, 25));
 		items.add(upgrade("max_life", "Max Life", "Life items can take you"
-				+ " higher than the normal cap.", 80, 40, 40, 20, 3));
+				+ " higher than the normal cap.", 80, 40));
 		items.add(upgrade("long_lasting", "Long Lasting", "Shield, freeze"
-				+ " and boosts last longer.", 50, 25, 25, 12, 3));
+				+ " and boosts last longer.", 50, 25));
 
 		ITEMS = Collections.unmodifiableList(items);
 	}
@@ -223,10 +224,9 @@ public final class ShopCatalog {
 	}
 
 	private static ShopItem upgrade(final String itemId, final String name,
-			final String description, final int coins, final int coinStep,
-			final int diamonds, final int diamondStep, final int maxLevel) {
+			final String description, final int coins, final int diamonds) {
+		// No levels (Item System rule): no price step, bought once.
 		return new ShopItem("upgrade_" + itemId, name, description,
-				ShopCategory.UPGRADE, coins, diamonds, coinStep, diamondStep,
-				maxLevel, itemId);
+				ShopCategory.UPGRADE, coins, diamonds, 0, 0, 1, itemId);
 	}
 }

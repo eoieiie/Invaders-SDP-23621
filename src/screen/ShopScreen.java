@@ -792,11 +792,10 @@ public class ShopScreen extends Screen {
 			break;
 		}
 		case UPGRADE: {
-			int level = purchases.getQuantity(item);
-			if (level == 0) {
-				lines.add("UP TO LEVEL " + item.getMaxLevel());
+			if (!purchases.isOwned(item)) {
+				lines.add("ONE EQUIPPED AT A TIME");
 			} else {
-				lines.add("LEVEL " + level + "/" + item.getMaxLevel() + " - "
+				lines.add("OWNED - "
 						+ (purchases.isUpgradeOn(item.getRef()) ? "ON"
 								: "OFF"));
 				lines.add("SWITCH ON/OFF IN CUSTOMIZE");

@@ -6,20 +6,25 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
+import engine.EconomyConfig;
+
 /**
  * The Night Market: a few shop entries sold at a discount, changing once a
  * day. The picks come from a random generator seeded with the date, so the
  * deals stay the same all day and nothing needs saving. The discount
- * applies to both coin and diamond prices, and to every upgrade level.
+ * applies to both coin and diamond prices.
  *
  * @author GoG - Currency System
  */
 public final class NightMarket {
 
-	/** How many entries are on sale each day. */
-	public static final int LISTING_COUNT = 3;
-	/** Discount applied to every listing, in percent. */
-	public static final int DISCOUNT_PERCENT = 30;
+	/** How many entries are on sale each day, from res/economy.properties. */
+	public static final int LISTING_COUNT = EconomyConfig.getInstance()
+			.getNightMarketListingCount();
+	/** Discount applied to every listing, in percent, from
+	 * res/economy.properties. */
+	public static final int DISCOUNT_PERCENT = EconomyConfig.getInstance()
+			.getNightMarketDiscountPercent();
 
 	/**
 	 * Not instantiable.
