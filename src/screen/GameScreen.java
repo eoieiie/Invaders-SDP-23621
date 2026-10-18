@@ -24,6 +24,7 @@ import engine.DamageDimEffect;
 import engine.GameEvents;
 import engine.GlitchEffect;
 import engine.PurchaseManager;
+import engine.MeteorManager;
 import engine.ScreenShake;
 import engine.PointsEffect;
 import entity.Bullet;
@@ -232,6 +233,8 @@ public class GameScreen extends Screen {
 	private GlitchEffect glitch;
 	/** Screen shake when an enemy is destroyed. */
 	private ScreenShake screenShake;
+	/** Bonus meteor and its diamonds. AUTHORED BY: VFX TEAM (Effection) */
+	private MeteorManager meteors; 
 	/** Points shown when enemies are destroyed. AUTHORED BY: VFX TEAM (Effection) */
 	private PointsEffect pointsEffect;
 	/** Diamonds earned this run but not yet cashed out; lost on death,
@@ -336,6 +339,7 @@ public class GameScreen extends Screen {
 		GameEvents.subscribe(GameEvents.Type.PLAYER_HIT, this.damageDim);
 		this.glitch = new GlitchEffect();
 		this.screenShake = new ScreenShake();
+		this.meteors = new MeteorManager(this.level, this.width, this.height,SEPARATION_LINE_HEIGHT);
 		this.pointsEffect = new PointsEffect(SEPARATION_LINE_HEIGHT);
 		this.scoreBoostPopups = new ArrayList<long[]>(); // Item System (Team CS)
 		this.coins = new HashSet<Coin>();
@@ -471,6 +475,7 @@ public class GameScreen extends Screen {
 			if (!this.items.enemiesFrozen()) // Freeze item (Team CS)
 				this.enemyShipFormation.update();
 			this.enemyShipFormation.shoot(this.bullets);
+			this.meteors.trySpawn(this.enemyShipFormation, this.ship); // VFX TEAM (Effection)
 			/**
 			 * AUTHORED BY: VFX TEAM (effection)
 			 *
@@ -489,6 +494,7 @@ public class GameScreen extends Screen {
 		cleanBullets();
 		updateParticles(); // AUTHORED BY: VFX TEAM (Effection)
 		updateCoins();
+		this.pendingDiamonds += this.meteors.update(this.ship, this.lives > 0); // VFX TEAM (Effection): updates the meteor and its diamonds, returns the diamonds to be added to pending
 		handleItemEvents();
 		updateAchievementPopup();
 		draw();
@@ -512,6 +518,7 @@ public class GameScreen extends Screen {
 			if (this.enemyShipFormation.isEmpty() && this.lives > 0) {
 				this.pendingDiamonds += this.level;
 				collectRemainingCoins();
+				this.pendingDiamonds += this.meteors.collectRemaining(); // VFX TEAM (Effection): collects remaining diamonds from the meteor and adds them to pending
 				showUnlockedAchievement(Core.getAchievementManager()
 						.recordLevelCompleted(this.level));
 
@@ -550,6 +557,7 @@ public class GameScreen extends Screen {
 
 		BulletPool.recycle(this.bullets);
 		this.bullets.clear();
+		this.meteors.clear(); // VFX TEAM (Effection):
 
 		// Clears explosions left from enemies shot just before.
 		this.enemyShipFormation.removeDestroyed();
@@ -783,6 +791,7 @@ public class GameScreen extends Screen {
 			for (Coin coin : this.coins)
 				drawManager.drawCoin(coin, coin.getPositionX(),
 						coin.getPositionY());
+			this.meteors.draw(drawManager); // VFX TEAM (Effection): draws the meteor and its diamonds
 			drawManager.drawItemDrops(this.items); // Item System (Team CS)
 			// HUD must stay still: remove shake offset.
 			drawManager.setWorldOffset(0, 0);
@@ -959,6 +968,9 @@ public class GameScreen extends Screen {
 					this.enemyShipSpecialExplosionCooldown.reset();
 					recyclable.add(bullet);
 				}
+				// Bonus meteor: only player bullets hit it. VFX TEAM (Effection)
+				if (!recyclable.contains(bullet) && this.meteors.tryHit(bullet))
+					recyclable.add(bullet);
 			}
 		this.bullets.removeAll(recyclable);
 		BulletPool.recycle(recyclable);

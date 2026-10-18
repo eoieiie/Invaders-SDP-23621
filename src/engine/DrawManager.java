@@ -19,7 +19,9 @@ import screen.MenuItem;
 import screen.Screen;
 import screen.Starfield;
 import entity.Coin;
+import entity.DiamondDrop;
 import entity.Entity;
+import entity.Meteor;
 import entity.Particle;
 import entity.Ship;
 import item.ItemAPI;
@@ -377,6 +379,16 @@ public final class DrawManager {
 				coin.getHeight());
 	}
 
+	/** Draws the bonus meteor. AUTHORED BY: VFX TEAM (Effection) */
+	public void drawMeteor(final Meteor meteor) {
+		MeteorManager.drawMeteor(backBufferGraphics, meteor);
+	}
+
+	/** Draws a meteor diamond. AUTHORED BY: VFX TEAM (Effection) */
+	public void drawDiamondDrop(final DiamondDrop drop) {
+		MeteorManager.drawDiamond(backBufferGraphics, drop, fontRegular);
+	}
+	
 	/**
 	 * Draws the item drops on the field (Team CS - Item System). Drops have
 	 * no entry in the shared sprite file yet, so the item system draws
