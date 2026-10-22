@@ -12,4 +12,4 @@ Run in a fresh temporary classes directory so generated player profiles are isol
 
 ## Achievement compatibility
 
-This change extends the run to Stage 10 without changing AchievementManager. Infinity Void still unlocks after clearing Stage 7, and Fleet Master still records Stage 7 clears with each required ship. Humble Beginnings follows the existing game-win hook, which now runs at the end of Stage 10. Whether the first two conditions should move to Stage 10 needs confirmation from Mantis; existing saved achievements are preserved.
+The course main update from Mantis PR #170 now sets Infinity Void to Stage 10 and Fleet Master to the final stage reported by Core.getNumLevels(). Humble Beginnings follows the existing game-win hook after Stage 10. The boss integration preserves these upstream achievement rules and existing saved achievements.

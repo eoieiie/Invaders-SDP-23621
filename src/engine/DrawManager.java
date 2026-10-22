@@ -109,12 +109,13 @@ public final class DrawManager {
 		ShipFastMove,
 		/** Player ship that shoots from two barrels (Two-Way Shot). */
 		ShipTwoWay,
-		/** First Flight achievement icon. */
-		FirstFlight,
 		/** Fast Attack player ship. */
 		ShipFastAttack,
 		/** Big Bullet player ship. */
 		ShipBigBullet,
+
+		/** First Flight achievement icon. */
+		FirstFlight,
 		/** Fleet Master achievement icon. */
 		FleetMaster,
 		/** Weakestship sprite. */
@@ -122,7 +123,23 @@ public final class DrawManager {
 		/** Infinity Void achievement icon. */
 		InfinityVoid,
 		/** First Boss Kill achievement icon. */
-		BossKill
+		BossKill,
+
+		/** Achievement trophy icon. */
+		Trophy,
+		/** Enemies killed achievement icon. */
+		Hunter,
+		/** Accuracy target achievement icon. */
+		Accuracytarget,
+        /** Currency collected in one run achievement icon**/
+        Looter,
+        /** Item used achievement icon. */
+		ItemCol,
+		/** Bouncing boss animation frames. */
+		MidBoss1,
+		MidBoss2,
+		FinalBoss1,
+		FinalBoss2
 	};
 
 	/**
@@ -165,6 +182,15 @@ public final class DrawManager {
 			spriteMap.put(SpriteType.Weakestship, new boolean[11][11]);
 			spriteMap.put(SpriteType.InfinityVoid, new boolean[11][11]);
 			spriteMap.put(SpriteType.BossKill, new boolean[11][11]);
+			spriteMap.put(SpriteType.Hunter, new boolean[13][12]);
+			spriteMap.put(SpriteType.Trophy, new boolean[11][8]);
+			spriteMap.put(SpriteType.Accuracytarget, new boolean[11][11]);
+            spriteMap.put(SpriteType.Looter, new boolean[11][11]);
+			spriteMap.put(SpriteType.ItemCol, new boolean[12][12]);
+			spriteMap.put(SpriteType.MidBoss1, new boolean[16][10]);
+			spriteMap.put(SpriteType.MidBoss2, new boolean[16][10]);
+			spriteMap.put(SpriteType.FinalBoss1, new boolean[24][16]);
+			spriteMap.put(SpriteType.FinalBoss2, new boolean[24][16]);
 
 			fileManager.loadSprite(spriteMap);
 			logger.info("Finished loading the sprites.");
@@ -388,7 +414,7 @@ public final class DrawManager {
 	public void drawDiamondDrop(final DiamondDrop drop) {
 		MeteorManager.drawDiamond(backBufferGraphics, drop, fontRegular);
 	}
-	
+
 	/**
 	 * Draws the item drops on the field (Team CS - Item System). Drops have
 	 * no entry in the shared sprite file yet, so the item system draws
@@ -1637,7 +1663,6 @@ public final class DrawManager {
 			drawCenteredRegularString(screen, string, height);
 		}
 	}
-
 	/**
 	 * Draws the damage dim overlay when the player is hit.
 	 *AUTHORED BY: VFX TEAM (Effection)
@@ -1667,7 +1692,7 @@ public final class DrawManager {
 			effect.draw(backBuffer, backBufferGraphics);
 	}
 
-	
+
 	/**
 	 * Draws the points shown when enemies are destroyed.
 	 * AUTHORED BY: VFX TEAM (Effection)

@@ -195,6 +195,10 @@ diamonds
 coins.tmp
 diamonds.tmp
 
+# Shop purchases and loadout, written at runtime (Currency System)
+/shop-owned
+/shop-owned.tmp
+
 # Equipped items the player owns, written at runtime (Item System)
 /equipment
 /equipment.tmp
