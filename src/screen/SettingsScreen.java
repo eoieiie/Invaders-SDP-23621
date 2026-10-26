@@ -235,17 +235,10 @@ public class SettingsScreen extends Screen {
 				? Color.GREEN
 				: Color.WHITE;
 
-		// Label on the left.
-		this.drawManager.drawRegularString(
-				label, left, centerY - 22, color);
-
-		// Percentage aligned with the right end of the track.
-		String value = percent + "%";
-		this.drawManager.drawRegularString(
-				value,
-				left + width - this.drawManager.getRegularStringWidth(value),
-				centerY - 22,
-				color);
+		// Draw the label and percentage using the shared selection style.
+		this.drawManager.drawMenuRow(
+				this, label + "  " + percent + "%",
+				centerY - 22, this.currentMenuItem == index);
 
 		// Unfilled track.
 		this.drawManager.fillBox(
