@@ -3,6 +3,7 @@ package screen;
 import engine.Cooldown;
 import engine.Core;
 import java.awt.event.KeyEvent;
+import java.awt.Color;
 import engine.soundEngine.Sound;
 import engine.soundEngine.SoundManager;
 
@@ -20,6 +21,12 @@ public class SettingsScreen extends Screen {
 	private final SoundManager soundManager = SoundManager.getInstance();
 	/** Current selected menu item. */
 	private int currentMenuItem = 0;
+	/** Vertical distance between the BGM and SFX sliders. */
+	private static final int SLIDER_ROW_SPACING = 80;
+	/** Slider currently being dragged, or -1 when none is active. */
+	private int draggingSlider = -1;
+	/** Whether the left mouse button was pressed on the previous frame. */
+	private boolean mouseWasPressed;
 
 	/**
 	 * Constructor, establishes the properties of the screen.
@@ -36,6 +43,8 @@ public class SettingsScreen extends Screen {
 		this.returnCode = 1;
 		this.selectionCooldown = Core.getCooldown(SELECTION_TIME);
 		this.selectionCooldown.reset();
+
+		this.mouseWasPressed = this.inputManager.isLeftMousePressed();
 	}
 
 	/** Returns the current volume as a percentage. */
@@ -65,86 +74,215 @@ public class SettingsScreen extends Screen {
 	}
 
 	/**
-	 * Updates the elements on screen and checks for events.
+	 * Updates keyboard input, slider dragging and screen drawing.
 	 */
+	@Override
 	protected final void update() {
 		super.update();
+
+		boolean mousePressed = this.inputManager.isLeftMousePressed();
+
+		if (this.inputDelay.checkFinished()) {
+			if (this.inputManager.isKeyDown(KeyEvent.VK_ESCAPE)) {
+				this.draggingSlider = -1;
+				this.isRunning = false;
+			} else {
+				updateMouseVolume(mousePressed);
+
+				// Keyboard changes are paused while a slider is being dragged.
+				if (this.draggingSlider == -1
+						&& this.selectionCooldown.checkFinished()) {
+
+					if (this.inputManager.isKeyDown(KeyEvent.VK_UP)
+							|| this.inputManager.isKeyDown(KeyEvent.VK_DOWN)) {
+						this.currentMenuItem = (this.currentMenuItem + 1) % 2;
+						this.selectionCooldown.reset();
+					}
+
+					if (this.inputManager.isKeyDown(KeyEvent.VK_LEFT)) {
+						adjustSelectedVolume(-10);
+						this.selectionCooldown.reset();
+					} else if (this.inputManager.isKeyDown(KeyEvent.VK_RIGHT)) {
+						adjustSelectedVolume(10);
+						this.selectionCooldown.reset();
+					}
+				}
+			}
+		}
+
+		this.mouseWasPressed = mousePressed;
 		draw();
+	}
 
-		if (this.inputManager.isKeyDown(KeyEvent.VK_ESCAPE) && this.inputDelay.checkFinished()) {
-			this.isRunning = false;
+	/**
+	 * Adjusts volume while dragging and updates mouse hover selection.
+	 *
+	 * @param mousePressed
+	 *            Whether the left mouse button is currently held down.
+	 */
+	private void updateMouseVolume(final boolean mousePressed) {
+		int mouseX = this.inputManager.getMouseX();
+		int mouseY = this.inputManager.getMouseY();
+		boolean moved = this.inputManager.isMouseMoved();
+
+		// Start dragging only when a new press occurs on a slider.
+		if (mousePressed && !this.mouseWasPressed) {
+			for (int index = 0; index < 2; index++) {
+				boolean onTrack =
+						mouseX >= sliderLeft() - 6
+								&& mouseX <= sliderLeft() + sliderWidth() + 6
+								&& Math.abs(mouseY - sliderY(index)) <= 14;
+
+				if (onTrack) {
+					this.draggingSlider = index;
+					this.currentMenuItem = index;
+					break;
+				}
+			}
 		}
 
-		if (this.selectionCooldown.checkFinished()) {
-			if (this.inputManager.isKeyDown(KeyEvent.VK_UP)) {
-				currentMenuItem = (currentMenuItem + 1) % 2;
-				this.selectionCooldown.reset();
-			} else if (this.inputManager.isKeyDown(KeyEvent.VK_DOWN)) {
-				currentMenuItem = (currentMenuItem + 1) % 2;
-				this.selectionCooldown.reset();
-			}
+		// Keep adjusting the original slider until the button is released.
+		if (this.draggingSlider != -1) {
+			int percent = Math.round(
+					(mouseX - sliderLeft()) * 100f / sliderWidth());
 
-			if (this.inputManager.isKeyDown(KeyEvent.VK_LEFT)) {
-				adjustSelectedVolume(-10);
-				this.selectionCooldown.reset();
-			} else if (this.inputManager.isKeyDown(KeyEvent.VK_RIGHT)) {
-				adjustSelectedVolume(10);
-				this.selectionCooldown.reset();
-			}
-		}
+			percent = Math.max(0, Math.min(100, percent));
 
-		if (this.inputManager.isMouseMoved()) {
-			int mouseY = this.inputManager.getMouseY();
-			for (int row = 0; row < 2; row++)
-				if (this.drawManager.isOnMenuRow(rowBaseline(row), SPACING,
-						mouseY))
-					currentMenuItem = row;
+			Sound.Category category = this.draggingSlider == 0
+					? Sound.Category.BGM
+					: Sound.Category.SFX;
+
+			this.soundManager.setVolume(category, percent / 100f);
+
+			if (!mousePressed)
+				this.draggingSlider = -1;
+		} else if (moved && !mousePressed) {
+			for (int index = 0; index < 2; index++) {
+				boolean insideControl =
+						mouseX >= sliderLeft() - 6
+								&& mouseX <= sliderLeft() + sliderWidth() + 6
+								&& mouseY >= sliderY(index) - 36
+								&& mouseY <= sliderY(index) + 14;
+
+				if (insideControl) {
+					this.currentMenuItem = index;
+					break;
+				}
+			}
 		}
 	}
 
 	/**
-	 * Baseline of a row, counted from the first volume row. Drawing and
-	 * mouse hover both use this, so they cannot drift apart.
+	 * Returns the horizontal starting position of the volume sliders.
+	 *
+	 * @return Left edge of the slider tracks.
+	 */
+	private int sliderLeft() {
+		return this.getWidth() / 5;
+	}
+
+	/**
+	 * Returns the distance between the 0% and 100% positions.
+	 *
+	 * @return Slider track width in pixels.
+	 */
+	private int sliderWidth() {
+		return Math.max(1, this.getWidth() * 3 / 5);
+	}
+
+	/**
+	 * Returns the vertical centre of a volume slider.
+	 *
+	 * @param index
+	 *            Slider index: 0 for BGM, 1 for SFX.
+	 * @return Vertical centre of the slider track.
+	 */
+	private int sliderY(final int index) {
+		return this.getHeight() / 3 + index * SLIDER_ROW_SPACING;
+	}
+
+	/**
+	 * Returns the baseline of a key-binding row below the sliders.
 	 *
 	 * @param row
-	 *            Row index, from the top.
-	 * @return Baseline of the row's text.
+	 *            Key-binding row index, starting from zero.
+	 * @return Vertical position of the text baseline.
 	 */
-	private int rowBaseline(final int row) {
-		return this.getHeight() / 3 + SPACING * row;
+	private int bindingY(final int row) {
+		return sliderY(1) + 60 + SPACING * row;
 	}
 
 	/**
-	 * Draws the elements associated with the screen.
+	 * Draws a horizontal volume slider with its label and percentage.
+	 *
+	 * @param index
+	 *            Slider index: 0 for BGM, 1 for SFX.
+	 * @param label
+	 *            Name displayed above the slider.
+	 * @param category
+	 *            Sound category whose volume is displayed.
+	 */
+	private void drawVolumeSlider(final int index, final String label,
+								  final Sound.Category category) {
+
+		int left = sliderLeft();
+		int width = sliderWidth();
+		int centerY = sliderY(index);
+		int percent = getVolumePercent(category);
+		int thumbX = left + Math.round(width * percent / 100f);
+
+		Color color = this.currentMenuItem == index
+				? Color.GREEN
+				: Color.WHITE;
+
+		// Draw the label and percentage using the shared selection style.
+		this.drawManager.drawMenuRow(
+				this, label + "  " + percent + "%",
+				centerY - 22, this.currentMenuItem == index);
+
+		// Unfilled track.
+		this.drawManager.fillBox(
+				left, centerY - 3, width + 1, 6, Color.DARK_GRAY);
+
+		// Filled portion showing the current volume.
+		this.drawManager.fillBox(
+				left, centerY - 3, thumbX - left, 6, color);
+
+		// Slider handle.
+		this.drawManager.fillBox(
+				thumbX - 5, centerY - 9, 11, 18, Color.WHITE);
+	}
+
+	/**
+	 * Draws the volume sliders, key bindings and footer.
 	 */
 	private void draw() {
 		this.drawManager.initDrawing(this);
 		this.drawManager.drawScreenTitle(
 				this, MenuItem.SETTINGS.getTitle());
 
-		int bgmVolume = getVolumePercent(Sound.Category.BGM);
-		int sfxVolume = getVolumePercent(Sound.Category.SFX);
+		drawVolumeSlider(0, "BGM", Sound.Category.BGM);
+		drawVolumeSlider(1, "SFX", Sound.Category.SFX);
 
-		String bgmStr = "BGM Volume: " + bgmVolume + "%";
-		String sfxStr = "SFX Volume: " + sfxVolume + "%";
-		String m2 = "Key Bindings";
+		this.drawManager.drawMenuRow(
+				this, "Key Bindings", bindingY(0), false);
 
-		this.drawManager.drawMenuRow(this, bgmStr, rowBaseline(0),
-				currentMenuItem == 0);
-		this.drawManager.drawMenuRow(this, sfxStr, rowBaseline(1),
-				currentMenuItem == 1);
+		this.drawManager.drawMenuRow(
+				this, "- Move Left: A / Left Arrow -",
+				bindingY(1), false);
 
-		this.drawManager.drawMenuRow(this, m2, rowBaseline(3), false);
+		this.drawManager.drawMenuRow(
+				this, "- Move Right: D / Right Arrow -",
+				bindingY(2), false);
 
-		this.drawManager.drawMenuRow(this, "- Move Left: A / Left Arrow -",
-				rowBaseline(4), false);
-		this.drawManager.drawMenuRow(this, "- Move Right: D / Right Arrow -",
-				rowBaseline(5), false);
-		this.drawManager.drawMenuRow(this, "- Shoot: Space -",
-				rowBaseline(6), false);
-		this.drawManager.drawMenuRow(this, "- Back: ESC -",
-				rowBaseline(7), false);
-		this.drawManager.drawKeyHints(this, "arrows adjust, esc back");
+		this.drawManager.drawMenuRow(
+				this, "- Shoot: Space -", bindingY(3), false);
+
+		this.drawManager.drawMenuRow(
+				this, "- Back: ESC -", bindingY(4), false);
+
+		this.drawManager.drawKeyHints(
+				this, "drag volume, arrows adjust, esc back");
 
 		this.drawManager.completeDrawing(this);
 	}
