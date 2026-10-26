@@ -8,7 +8,9 @@ import engine.DrawManager.SpriteType;
 public class Achievement {
 
 	/** Events that can unlock an achievement. */
-	public enum Requirement { ENEMY_KILLS, LEVEL10_ALL_SHIPS }
+	public enum Requirement {
+		ENEMY_KILLS, LEVEL10_ALL_SHIPS, FLAWLESS_LEVELS, ACCURACY, RUNCOINS, ITEM_USES
+	}
 	private final Requirement requirement;
 
 	/** Persistent achievement identifier. */
@@ -74,6 +76,16 @@ public class Achievement {
 			final SpriteType spriteType, final boolean unlocked,
 			final Color iconColor) {
 		this(id, name, description, requiredEnemyKills, spriteType, unlocked);
+		this.iconColor = iconColor;
+	}
+
+	/** Creates an achievement with a custom requirement and icon colour. */
+	public Achievement(final String id, final String name,
+			final String description, final int requiredEnemyKills,
+			final SpriteType spriteType, final boolean unlocked,
+			final Requirement requirement, final Color iconColor) {
+		this(id, name, description, requiredEnemyKills, spriteType, unlocked,
+				requirement);
 		this.iconColor = iconColor;
 	}
 

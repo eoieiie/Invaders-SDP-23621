@@ -404,6 +404,7 @@ public final class ItemSystem {
                 break;
             case ITEM_USED:
                 logger.info("Item used: " + name + " from slot " + (event.slotIndex + 1) + ".");
+                Core.getAchievementManager().recordItemUsed();
                 notice = null; // a "(press N)" hint is outdated once the item is used
                 if (item != null && (item.effectKind == EffectKind.BOOST || item.effectKind == EffectKind.SCORE_BOOST))
                     showNotice(name + " x" + multiplier(item.magnitude));

@@ -357,6 +357,10 @@ public final class FileManager {
 
 			int totalEnemiesKilled = Integer.parseInt(properties.getProperty(
 					"totalEnemiesKilled", "0"));
+			int flawlessLevelsCleared = Integer.parseInt(properties.getProperty(
+					"flawlessLevelsCleared", "0"));
+			int totalItemsUsed = Integer.parseInt(
+					properties.getProperty("totalItemsUsed", "0"));
 			Set<String> unlockedAchievements = new HashSet<String>();
 			String unlocked = properties.getProperty("unlockedAchievements", "");
 			if (!unlocked.isEmpty())
@@ -370,7 +374,7 @@ public final class FileManager {
 				for (String shipId : completed.split(","))
 					completedShips.add(shipId);
 			return new PlayerProfile(totalEnemiesKilled, unlockedAchievements,
-					completedShips);
+					completedShips, flawlessLevelsCleared, totalItemsUsed);
 		} finally {
 			if (inputStream != null)
 				inputStream.close();
@@ -395,10 +399,14 @@ public final class FileManager {
 			Properties properties = new Properties();
 			properties.setProperty("totalEnemiesKilled", Integer.toString(
 					playerProfile.getTotalEnemiesKilled()));
+			properties.setProperty("flawlessLevelsCleared", Integer.toString(
+					playerProfile.getFlawlessLevelsCleared()));
 			properties.setProperty("unlockedAchievements", joinAchievementIds(
 					playerProfile.getUnlockedAchievements()));
 			properties.setProperty("level10CompletedShips", joinAchievementIds(
 					playerProfile.getLevel10CompletedShips()));
+			properties.setProperty("totalItemsUsed",
+					Integer.toString(playerProfile.getTotalItemsUsed()));
 			properties.store(outputStream, "Space Invaders player profile");
 			logger.info("Saving player profile.");
 		} finally {

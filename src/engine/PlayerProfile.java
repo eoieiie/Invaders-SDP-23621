@@ -15,6 +15,9 @@ public class PlayerProfile {
 
 	/** Stable ship model IDs with a confirmed level 10 clear. */
 	private Set<String> level10CompletedShips;
+	/** Total levels cleared without the player taking damage. */
+	private int flawlessLevelsCleared;
+	private int totalItemsUsed;
 
 	/** Creates an empty player profile. */
 	public PlayerProfile() {
@@ -29,16 +32,27 @@ public class PlayerProfile {
 	 */
 	public PlayerProfile(final int totalEnemiesKilled,
 			final Set<String> unlockedAchievements) {
-		this(totalEnemiesKilled, unlockedAchievements, new HashSet<String>());
+		this(totalEnemiesKilled, unlockedAchievements, new HashSet<String>(), 0,0);
 	}
 
 	/** Loads progress, preserving compatibility with older profile callers. */
 	public PlayerProfile(final int totalEnemiesKilled,
 			final Set<String> unlockedAchievements,
 			final Set<String> level10CompletedShips) {
+		this(totalEnemiesKilled, unlockedAchievements, level10CompletedShips, 0,0);
+	}
+
+	/** Loads progress including cumulative flawless-level clears. */
+	public PlayerProfile(final int totalEnemiesKilled,
+			final Set<String> unlockedAchievements,
+			final Set<String> level10CompletedShips,
+			final int flawlessLevelsCleared,
+						 final int totalItemsUsed) {
 		this.level10CompletedShips = new HashSet<String>(level10CompletedShips);
 		this.totalEnemiesKilled = totalEnemiesKilled;
 		this.unlockedAchievements = new HashSet<String>(unlockedAchievements);
+		this.flawlessLevelsCleared = Math.max(0, flawlessLevelsCleared);
+		this.totalItemsUsed = Math.max(0, totalItemsUsed);
 	}
 
 	/** Records a distinct ship; repeating a clear does not add progress. */
@@ -59,6 +73,24 @@ public class PlayerProfile {
 	/** @return Total enemies defeated across all games. */
 	public final int getTotalEnemiesKilled() {
 		return this.totalEnemiesKilled;
+	}
+
+	/** Records one level clear with no player damage. */
+	public final void recordFlawlessLevelCleared() {
+		this.flawlessLevelsCleared++;
+	}
+
+	/** @return Total levels cleared without player damage. */
+	public final int getFlawlessLevelsCleared() {
+		return this.flawlessLevelsCleared;
+	}
+
+	/** Records one successful item use. */
+	public final void recordItemUsed() {this.totalItemsUsed++;
+	}
+
+	/** @return Total successful item uses. */
+	public final int getTotalItemsUsed() {return this.totalItemsUsed;
 	}
 
 	/**
