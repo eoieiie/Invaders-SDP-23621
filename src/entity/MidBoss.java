@@ -16,10 +16,12 @@ public final class MidBoss extends Entity implements Boss {
     private static final int MIN_SHOOTING_INTERVAL = 500;
     private static final int INTERVAL_REDUCTION = 30;
     private static final int BULLET_SPEED = 5;
+    /** Health points this boss starts an encounter with. */
+    private static final int MAX_HP = 2;
     private final Cooldown animationCooldown = Core.getCooldown(500);
     private Cooldown shootCooldown;
     private int shootingInterval;
-    private int hp = 2;
+    private int hp = MAX_HP;
     private boolean destroyed;
     private int speedX;
     private int speedY;
@@ -33,6 +35,8 @@ public final class MidBoss extends Entity implements Boss {
 
     public int getPointValue() { return DEFEAT_POINTS; }
     public boolean isDestroyed() { return destroyed; }
+    public int getHp() { return hp; }
+    public int getMaxHp() { return MAX_HP; }
 
     public void update() {
         if (!destroyed && animationCooldown.checkFinished()) {

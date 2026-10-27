@@ -68,4 +68,10 @@ public class Cooldown {
 					+ (int) (Math.random()
 							* (this.milliseconds + this.variance));
 	}
+
+	/** Keeps a running cooldown from advancing while gameplay is paused. */
+	public final void delayBy(final long pausedMilliseconds) {
+		if (this.time != 0 && pausedMilliseconds > 0)
+			this.time += pausedMilliseconds;
+	}
 }

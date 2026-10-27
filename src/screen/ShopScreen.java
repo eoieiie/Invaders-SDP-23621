@@ -18,13 +18,15 @@ import item.ItemSystem;
 import shop.Currency;
 import shop.NightMarket;
 import shop.ShopCatalog;
+import shop.ShapeSkin;
 import shop.ShopCategory;
 import shop.ShopItem;
 import shop.Skin;
 
 /**
- * The shop (GoG - Currency System). Four tabs: Ships, Skins, Upgrades and
- * the Night Market. The left side lists what is for sale, the right side
+ * The shop (GoG - Currency System). Six tabs: Ships, Skins, Looks,
+ * Upgrades, Effects and Night Market. The left side lists what is for sale,
+ * the right side
  * shows the selected entry with its price and BUY buttons.
  *
  * Skins and upgrades can be paid with coins or diamonds, so they get one
@@ -47,10 +49,15 @@ public class ShopScreen extends Screen {
 		SHIPS("Ships", Color.GREEN),
 		/** Ship skins. */
 		SKINS("Skins", Color.CYAN),
+		/** Ship looks: alternative shapes for each ship (A1). */
+		LOOKS("Looks", new Color(120, 200, 255)),
 		/** Item team upgrades. */
 		UPGRADES("Upgrades", new Color(255, 200, 0)),
+		/** Placeholder for visual effects. */
+		EFFECTS("Effects", new Color(255, 140, 0)),
 		/** Today's discounts. */
 		NIGHT_MARKET("Night Mkt", new Color(255, 80, 255));
+
 
 		/** Text on the tab. */
 		private final String title;
@@ -295,25 +302,31 @@ public class ShopScreen extends Screen {
 	private static List<Entry> buildEntries(final Tab shown) {
 		List<Entry> result = new ArrayList<Entry>();
 		switch (shown) {
-		case SHIPS:
-			addAll(result, ShopCatalog.getByCategory(ShopCategory.SHIP));
-			break;
-		case SKINS:
-			addAll(result, ShopCatalog.getByCategory(ShopCategory.SKIN));
-			break;
-		case UPGRADES:
-			addAll(result, ShopCatalog.getByCategory(ShopCategory.UPGRADE));
-			break;
-		default:
-			for (ShopItem item : NightMarket.getListings())
-				result.add(new Entry(item, true));
-			break;
+			case SHIPS:
+				addAll(result, ShopCatalog.getByCategory(ShopCategory.SHIP));
+				break;
+			case SKINS:
+				addAll(result, ShopCatalog.getByCategory(ShopCategory.SKIN));
+				break;
+			case LOOKS:
+				addAll(result, ShopCatalog.getByCategory(ShopCategory.SHAPE));
+				break;
+			case UPGRADES:
+				addAll(result, ShopCatalog.getByCategory(ShopCategory.UPGRADE));
+				break;
+			case EFFECTS:
+				addAll(result, ShopCatalog.getByCategory(ShopCategory.EFFECT));
+				break;
+			default:
+				for (ShopItem item : NightMarket.getListings())
+					result.add(new Entry(item, true));
+				break;
 		}
 		return result;
 	}
 
 	private static void addAll(final List<Entry> result,
-			final List<ShopItem> items) {
+							   final List<ShopItem> items) {
 		for (ShopItem item : items)
 			result.add(new Entry(item, false));
 	}
@@ -339,35 +352,35 @@ public class ShopScreen extends Screen {
 		PurchaseResult result = purchases.purchase(item, currency,
 				entry.discounted);
 		switch (result) {
-		case SUCCESS:
-			showMessage((item.isRepeatable() ? item.getName() + " is now"
-					+ " level " + purchases.getQuantity(item) + "! "
-					: "Bought " + item.getName() + "! ") + afterBuying(item),
-					Color.GREEN);
-			break;
-		case INSUFFICIENT_FUNDS:
-			showMessage("Not enough " + currency.getLabel() + " (need "
-					+ price + ").", TOO_EXPENSIVE);
-			break;
-		case ALREADY_OWNED:
-			showMessage("You already own this.", TOO_EXPENSIVE);
-			break;
-		case MAX_LEVEL:
-			showMessage("Already at max level.", TOO_EXPENSIVE);
-			break;
-		case CURRENCY_NOT_ACCEPTED:
-			showMessage("Can't be paid with " + currency.getLabel() + ".",
-					TOO_EXPENSIVE);
-			break;
-		case NOT_ON_SALE:
-			// A Night Market deal can end at midnight while the shop is open.
-			showMessage(entry.discounted ? "Today's deal has ended."
-					: "This limited edition is no longer sold.", TOO_EXPENSIVE);
-			break;
-		default:
-			showMessage("Purchase failed, nothing was charged.",
-					TOO_EXPENSIVE);
-			break;
+			case SUCCESS:
+				showMessage((item.isRepeatable() ? item.getName() + " is now"
+								+ " level " + purchases.getQuantity(item) + "! "
+								: "Bought " + item.getName() + "! ") + afterBuying(item),
+						Color.GREEN);
+				break;
+			case INSUFFICIENT_FUNDS:
+				showMessage("Not enough " + currency.getLabel() + " (need "
+						+ price + ").", TOO_EXPENSIVE);
+				break;
+			case ALREADY_OWNED:
+				showMessage("You already own this.", TOO_EXPENSIVE);
+				break;
+			case MAX_LEVEL:
+				showMessage("Already at max level.", TOO_EXPENSIVE);
+				break;
+			case CURRENCY_NOT_ACCEPTED:
+				showMessage("Can't be paid with " + currency.getLabel() + ".",
+						TOO_EXPENSIVE);
+				break;
+			case NOT_ON_SALE:
+				// A Night Market deal can end at midnight while the shop is open.
+				showMessage(entry.discounted ? "Today's deal has ended."
+						: "This limited edition is no longer sold.", TOO_EXPENSIVE);
+				break;
+			default:
+				showMessage("Purchase failed, nothing was charged.",
+						TOO_EXPENSIVE);
+				break;
 		}
 	}
 
@@ -379,6 +392,8 @@ public class ShopScreen extends Screen {
 	private static String afterBuying(final ShopItem item) {
 		if (item.getCategory() == ShopCategory.UPGRADE)
 			return "It is on.";
+		if (item.getCategory() == ShopCategory.EFFECT)
+			return "It is on. Switch it off in Customize.";
 		return "Choose it in Customize.";
 	}
 
@@ -466,7 +481,7 @@ public class ShopScreen extends Screen {
 		return currency == Currency.COINS
 				? new Rectangle(row.x, row.y, half, row.height)
 				: new Rectangle(row.x + row.width - half, row.y, half,
-						row.height);
+				row.height);
 	}
 
 	// --- Drawing ---
@@ -516,13 +531,18 @@ public class ShopScreen extends Screen {
 					area.height - 1, active ? each.color : BORDER);
 			String title = each.title.toUpperCase();
 			this.drawManager.drawSmallString(title, area.x + (area.width
-					- this.drawManager.getSmallStringWidth(title)) / 2,
+							- this.drawManager.getSmallStringWidth(title)) / 2,
 					area.y + 14, active ? each.color : Color.GRAY);
 		}
 	}
 
 	private void drawList() {
 		if (this.entries.isEmpty()) {
+			if (this.tab == Tab.EFFECTS) {
+				drawEffectsPlaceholderRow();
+				drawLightningPlaceholderRow();
+				return;
+			}
 			this.drawManager.drawSmallString("Nothing for sale here.",
 					MARGIN + 6, bodyTop() + 18, Color.GRAY);
 			return;
@@ -556,13 +576,13 @@ public class ShopScreen extends Screen {
 			}
 			if (tag != null)
 				this.drawManager.drawSmallString(tag, area.x + area.width - 6
-						- this.drawManager.getSmallStringWidth(tag),
+								- this.drawManager.getSmallStringWidth(tag),
 						area.y + 12, tagColor);
 
 			int baseline = area.y + 24;
 			if (soldOut) {
 				this.drawManager.drawSmallString(entry.item.isRepeatable()
-						? "MAX LEVEL" : "OWNED", area.x + 6, baseline,
+								? "MAX LEVEL" : "OWNED", area.x + 6, baseline,
 						Color.GRAY);
 			} else if (!ShopCatalog.isOnSale(entry.item, LocalDate.now())) {
 				this.drawManager.drawSmallString("ENDED", area.x + 6,
@@ -577,7 +597,7 @@ public class ShopScreen extends Screen {
 				String level = "LV " + quantity + "/"
 						+ entry.item.getMaxLevel();
 				this.drawManager.drawSmallString(level, area.x + area.width
-						- 6 - this.drawManager.getSmallStringWidth(level),
+								- 6 - this.drawManager.getSmallStringWidth(level),
 						baseline, Color.GRAY);
 			}
 		}
@@ -609,7 +629,7 @@ public class ShopScreen extends Screen {
 	 * @return Left edge for whatever is drawn next.
 	 */
 	private int drawPrice(final Entry entry, final Currency currency,
-			final int left, final int baseline) {
+						  final int left, final int baseline) {
 		int price = entry.price(currency);
 		if (price <= 0)
 			return left;
@@ -628,8 +648,11 @@ public class ShopScreen extends Screen {
 		Rectangle area = detailArea();
 		this.drawManager.drawBox(area.x, area.y, area.width, area.height,
 				BORDER);
-		if (this.entries.isEmpty())
+		if (this.entries.isEmpty()) {
+			if (this.tab == Tab.EFFECTS)
+				drawEffectsPlaceholderDetail(area);
 			return;
+		}
 
 		Entry entry = this.entries.get(this.selected);
 		ShopItem item = entry.item;
@@ -638,7 +661,7 @@ public class ShopScreen extends Screen {
 
 		String name = item.getName();
 		this.drawManager.drawRegularString(name, centerX
-				- this.drawManager.getRegularStringWidth(name) / 2,
+						- this.drawManager.getRegularStringWidth(name) / 2,
 				area.y + 22, this.tab.color);
 
 		drawPreview(item, centerX, area.y + 36);
@@ -677,7 +700,7 @@ public class ShopScreen extends Screen {
 							.getPrice(currency, purchases.getQuantity(item)));
 			String text = was.toString();
 			this.drawManager.drawSmallString(text, area.x + area.width - 12
-					- this.drawManager.getSmallStringWidth(text),
+							- this.drawManager.getSmallStringWidth(text),
 					priceBaseline, Color.GRAY);
 		}
 
@@ -714,6 +737,233 @@ public class ShopScreen extends Screen {
 	}
 
 	/**
+	 * Placeholder row in the Effects tab until effects are sold.
+	 * AUTHORED BY: VFX TEAM (Effection)
+	 */
+	private void drawEffectsPlaceholderRow() {
+		Rectangle row = rowArea(0);
+		this.drawManager.drawBox(row.x, row.y, row.width, row.height,
+				BORDER);
+		this.drawManager.drawSmallString("COMET TRAIL", row.x + 8,
+				row.y + 18, Color.GRAY);
+		String soon = "SOON";
+		this.drawManager.drawSmallString(soon, row.x + row.width - 8
+				- this.drawManager.getSmallStringWidth(soon), row.y + 18,
+				Tab.EFFECTS.color);
+	}
+
+	/**
+	 * Placeholder row for Lightning Chain until it is sold.
+	 * AUTHORED BY: VFX TEAM (Effection)
+	 */
+	private void drawLightningPlaceholderRow() {
+		Rectangle row = rowArea(1);
+		this.drawManager.drawBox(row.x, row.y, row.width, row.height,
+				BORDER);
+		this.drawManager.drawSmallString("LIGHTNING CHAIN", row.x + 8,
+				row.y + 18, Color.GRAY);
+		String soon = "SOON";
+		this.drawManager.drawSmallString(soon, row.x + row.width - 8
+				- this.drawManager.getSmallStringWidth(soon), row.y + 18,
+				Tab.EFFECTS.color);
+	}
+
+	/**
+	 * Placeholder detail panel in the Effects tab until effects are sold.
+	 * AUTHORED BY: VFX TEAM (Effection)
+	 *
+	 * @param area
+	 *            Detail panel area.
+	 */
+	private void drawEffectsPlaceholderDetail(final Rectangle area) {
+		int centerX = area.x + area.width / 2;
+		String name = "Comet Trail";
+		this.drawManager.drawRegularString(name, centerX
+				- this.drawManager.getRegularStringWidth(name) / 2,
+				area.y + 22, Tab.EFFECTS.color);
+		drawCometTrailPreview(centerX, area.y + 36);
+		int y = area.y + 94;
+		drawCentered("BULLET EFFECT", centerX, y, Color.GRAY);
+		y += this.drawManager.getSmallLineHeight() + 4;
+		drawCentered("COMING SOON", centerX, y, Color.WHITE);
+	}
+
+	/** Trail colours, hot to cool. AUTHORED BY: VFX TEAM (Effection) */
+	private static final Color[] TRAIL_COLORS = {
+			new Color(255, 214, 64), new Color(255, 170, 40),
+			new Color(255, 140, 26), new Color(224, 80, 26),
+			new Color(168, 50, 14) };
+
+	/**
+	 * Animated preview: the selected ship fires one bullet with a comet
+	 * trail, looping. AUTHORED BY: VFX TEAM (Effection)
+	 *
+	 * @param centerX
+	 *            Horizontal centre of the preview.
+	 * @param top
+	 *            Top of the preview.
+	 */
+	private void drawCometTrailPreview(final int centerX, final int top) {
+		PurchaseManager purchases = PurchaseManager.getInstance();
+		long now = System.currentTimeMillis();
+		final int pixel = 3;
+
+		// Ship in the selected skin colour.
+		SpriteType shipSprite = selectedShipSprite();
+		int[] size = this.drawManager.getSpriteSize(shipSprite);
+		int shipY = top + 26;
+		this.drawManager.drawSpriteScaled(shipSprite,
+				centerX - size[0] * pixel / 2, shipY, pixel,
+				purchases.getSelectedSkin().colorAt(now));
+
+		// Bullet flies up 26 px, then loops (700 ms).
+		float k = (now % 700) / 700f;
+		int bulletX = centerX - 3;
+		int bulletY = shipY - 10 - (int) (k * 26);
+
+		// Trail: small fading blocks under the bullet.
+		for (int i = TRAIL_COLORS.length; i >= 1; i--) {
+			int trailY = bulletY + 10 + (i - 1) * 4;
+			if (trailY + 4 > shipY - 1)
+				continue;
+			Color base = TRAIL_COLORS[i - 1];
+			int alpha = (int) (200 * (1f - i / (TRAIL_COLORS.length + 1f)));
+			int w = Math.max(2, 6 - i);
+			this.drawManager.fillBox(centerX - w / 2, trailY, w, 4,
+					new Color(base.getRed(), base.getGreen(),
+							base.getBlue(), alpha));
+		}
+
+		// Soft glow + bright bullet.
+		this.drawManager.fillBox(bulletX - 2, bulletY - 2, 10, 14,
+				new Color(255, 176, 64, 80));
+		this.drawManager.drawSpriteScaled(SpriteType.Bullet, bulletX,
+				bulletY, 2, new Color(255, 246, 208));
+	}
+
+	/** Lightning tier colours. AUTHORED BY: VFX TEAM (Effection) */
+	private static final Color[] LIGHTNING_COLORS = {
+			new Color(79, 184, 255), new Color(176, 107, 255),
+			new Color(255, 200, 61) };
+
+	/**
+	 * Animated preview: a shot kills the middle enemy and lightning jumps
+	 * to its neighbours. Colour cycles through the streak tiers.
+	 * AUTHORED BY: VFX TEAM (Effection)
+	 *
+	 * @param centerX
+	 *            Horizontal centre of the preview.
+	 * @param top
+	 *            Top of the preview.
+	 */
+	private void drawLightningChainPreview(final int centerX, final int top) {
+		PurchaseManager purchases = PurchaseManager.getInstance();
+		long now = System.currentTimeMillis();
+		Color bolt = LIGHTNING_COLORS[(int) (now / 1200 % 3)];
+		float k = (now % 1200) / 1200f;
+		int enemyY = top + 4;
+		int shipY = top + 30;
+
+		// Ship in the selected skin colour.
+		SpriteType shipSprite = selectedShipSprite();
+		int[] size = this.drawManager.getSpriteSize(shipSprite);
+		this.drawManager.drawSpriteScaled(shipSprite,
+				centerX - size[0] * 2 / 2, shipY, 2,
+				purchases.getSelectedSkin().colorAt(now));
+
+		// Left and right enemies; middle one only before the hit.
+		drawPreviewEnemy(centerX - 36, enemyY, k > 0.25f && k < 0.7f);
+		drawPreviewEnemy(centerX + 36, enemyY, k > 0.25f && k < 0.7f);
+		if (k < 0.25f) {
+			drawPreviewEnemy(centerX, enemyY, false);
+			int bulletY = shipY - 4 - (int) (k / 0.25f * (shipY - enemyY - 8));
+			this.drawManager.fillBox(centerX - 1, bulletY, 2, 6, Color.WHITE);
+		} else if (k < 0.7f && (now / 50) % 3 != 2) {
+			drawPixelBolt(centerX, enemyY + 4, centerX - 36, enemyY + 4, bolt);
+			drawPixelBolt(centerX, enemyY + 4, centerX + 36, enemyY + 4, bolt);
+		}
+	}
+
+	/** Small white enemy block; blue tint when shocked. */
+	private void drawPreviewEnemy(final int x, final int y,
+			final boolean shocked) {
+		int jitter = shocked ? (int) (System.nanoTime() / 30000000 % 3) - 1 : 0;
+		Color c = shocked ? new Color(200, 230, 255) : Color.WHITE;
+		this.drawManager.fillBox(x - 8 + jitter, y, 16, 8, c);
+		this.drawManager.fillBox(x - 5 + jitter, y + 2, 3, 3, Color.BLACK);
+		this.drawManager.fillBox(x + 2 + jitter, y + 2, 3, 3, Color.BLACK);
+	}
+
+	/** Jagged pixel bolt between two points: glow + bright core. */
+	private void drawPixelBolt(final int x1, final int y1, final int x2,
+			final int y2, final Color color) {
+		Color glow = new Color(color.getRed(), color.getGreen(),
+				color.getBlue(), 90);
+		int steps = 8;
+		int px = x1;
+		int py = y1;
+		for (int i = 1; i <= steps; i++) {
+			int nx = x1 + (x2 - x1) * i / steps;
+			int ny = y1 + (y2 - y1) * i / steps
+					+ (i < steps ? (int) (Math.random() * 9) - 4 : 0);
+			for (int s = 0; s <= 4; s++) {
+				int bx = px + (nx - px) * s / 4;
+				int by = py + (ny - py) * s / 4;
+				this.drawManager.fillBox(bx - 2, by - 2, 4, 4, glow);
+				this.drawManager.fillBox(bx, by, 1, 1, Color.WHITE);
+			}
+			px = nx;
+			py = ny;
+		}
+	}
+
+	/**
+	 * Preview for an effect item, chosen by its effect id. Each effect
+	 * adds its own case. AUTHORED BY: VFX TEAM (Effection)
+	 *
+	 * @param item
+	 *            Effect item shown.
+	 * @param centerX
+	 *            Horizontal centre.
+	 * @param top
+	 *            Top of the preview.
+	 */
+	/** Sprite used by the selected ship, including its A1 look. */
+	private static SpriteType selectedShipSprite() {
+		PurchaseManager purchases = PurchaseManager.getInstance();
+		ShapeSkin shape = purchases.getSelectedShape(purchases.getSelectedShip());
+		return shape == null ? purchases.getSelectedShip().getIdleSprite()
+				: shape.getSprite();
+	}
+
+	private void drawEffectPreview(final ShopItem item, final int centerX,
+	                               final int top) {
+		switch (item.getRef()) {
+			case "comet_trail":
+				drawCometTrailPreview(centerX, top);
+				break;
+			case "ghost_trail":
+				engine.GhostTrail.drawPreview(this.drawManager,
+						selectedShipSprite(),
+						PurchaseManager.getInstance().getSelectedSkin(),
+						centerX, top);
+				break;
+			case "lightning_chain":
+				drawLightningChainPreview(centerX, top);
+				break;
+			case "warp_in":
+				this.drawManager.drawWarpInPreview(selectedShipSprite(),
+						PurchaseManager.getInstance().getSelectedSkin()
+								.colorAt(System.currentTimeMillis()),
+						centerX, top);
+				break;
+			default:
+				drawCentered("PREVIEW SOON", centerX, top + 30, Color.GRAY);
+				break;
+		}
+	}
+
+	/**
 	 * Big picture of the entry: the ship, the ship in the skin's colour, or
 	 * an item badge in the Item System's colour for it.
 	 *
@@ -725,38 +975,58 @@ public class ShopScreen extends Screen {
 	 *            Top of the preview.
 	 */
 	private void drawPreview(final ShopItem item, final int centerX,
-			final int top) {
+							 final int top) {
 		PurchaseManager purchases = PurchaseManager.getInstance();
 		final int pixel = 3;
 		switch (item.getCategory()) {
-		case SHIP:
-		case SKIN: {
-			ShipType type = item.getCategory() == ShopCategory.SHIP
-					? ShipType.valueOf(item.getRef())
-					: purchases.getSelectedShip();
-			// Animated skins move in the preview too.
-			long now = System.currentTimeMillis();
-			Color color = item.getCategory() == ShopCategory.SKIN
-					? Skin.valueOf(item.getRef()).colorAt(now)
-					: purchases.getSelectedSkin().colorAt(now);
-			SpriteType sprite = type.getIdleSprite();
-			int[] size = this.drawManager.getSpriteSize(sprite);
-			this.drawManager.drawSpriteScaled(sprite, centerX - size[0]
-					* pixel / 2, top + 6, pixel, color);
-			break;
-		}
-		default: {
-			Color color = itemColor(item);
-			int badge = 30;
-			int left = centerX - badge / 2;
-			this.drawManager.fillBox(left, top, badge, badge, tint(color));
-			this.drawManager.drawBox(left, top, badge, badge, color);
-			String letter = item.getName().substring(0, 1);
-			this.drawManager.drawRegularString(letter, centerX
-					- this.drawManager.getRegularStringWidth(letter) / 2,
-					top + 21, color);
-			break;
-		}
+			case SHAPE: {
+				// A ship look: its shape, in the colour skin currently used.
+				ShapeSkin shape = ShapeSkin.valueOf(item.getRef());
+				Color color = purchases.getSelectedSkin().colorAt(
+						System.currentTimeMillis());
+				SpriteType sprite = shape.getSprite();
+				int[] size = this.drawManager.getSpriteSize(sprite);
+				this.drawManager.drawSpriteScaled(sprite, centerX - size[0]
+						* pixel / 2, top + 6, pixel, color);
+				break;
+			}
+			case SHIP:
+			case SKIN: {
+				ShipType type = item.getCategory() == ShopCategory.SHIP
+						? ShipType.valueOf(item.getRef())
+						: purchases.getSelectedShip();
+				// Animated skins move in the preview too.
+				long now = System.currentTimeMillis();
+				Color color = item.getCategory() == ShopCategory.SKIN
+						? Skin.valueOf(item.getRef()).colorAt(now)
+						: purchases.getSelectedSkin().colorAt(now);
+				SpriteType sprite = type.getIdleSprite();
+				if (item.getCategory() == ShopCategory.SKIN) {
+					// The skin is shown on the ship in the look chosen for it.
+					ShapeSkin look = purchases.getSelectedShape(type);
+					if (look != null)
+						sprite = look.getSprite();
+				}
+				int[] size = this.drawManager.getSpriteSize(sprite);
+				this.drawManager.drawSpriteScaled(sprite, centerX - size[0]
+						* pixel / 2, top + 6, pixel, color);
+				break;
+			}
+			case EFFECT:
+				drawEffectPreview(item, centerX, top);
+				break;
+			default: {
+				Color color = itemColor(item);
+				int badge = 30;
+				int left = centerX - badge / 2;
+				this.drawManager.fillBox(left, top, badge, badge, tint(color));
+				this.drawManager.drawBox(left, top, badge, badge, color);
+				String letter = item.getName().substring(0, 1);
+				this.drawManager.drawRegularString(letter, centerX
+								- this.drawManager.getRegularStringWidth(letter) / 2,
+						top + 21, color);
+				break;
+			}
 		}
 	}
 
@@ -772,38 +1042,49 @@ public class ShopScreen extends Screen {
 		List<String> lines = new ArrayList<String>();
 		PurchaseManager purchases = PurchaseManager.getInstance();
 		switch (item.getCategory()) {
-		case SHIP: {
-			ShipType type = ShipType.valueOf(item.getRef());
-			lines.add("SPEED " + type.getSpeed() + "  |  BULLETS "
-					+ type.getBulletsPerShot());
-			lines.add("SHOTS PER SEC " + String.format("%.2f",
-					type.getBulletsPerShot() * 1000.0
-							/ type.getShootingInterval()));
-			break;
-		}
-		case SKIN: {
-			Skin skin = ShopCatalog.limitedSkin(item);
-			if (skin == null)
+			case SHIP: {
+				ShipType type = ShipType.valueOf(item.getRef());
+				lines.add("SPEED " + type.getSpeed() + "  |  BULLETS "
+						+ type.getBulletsPerShot());
+				lines.add("SHOTS PER SEC " + String.format("%.2f",
+						type.getBulletsPerShot() * 1000.0
+								/ type.getShootingInterval()));
 				break;
-			long days = skin.daysLeft(LocalDate.now());
-			lines.add(days == 0 ? "LIMITED EDITION - NO LONGER SOLD"
-					: "LIMITED EDITION - " + days
-							+ (days == 1 ? " DAY LEFT" : " DAYS LEFT"));
-			break;
-		}
-		case UPGRADE: {
-			if (!purchases.isOwned(item)) {
-				lines.add("ONE EQUIPPED AT A TIME");
-			} else {
-				lines.add("OWNED - "
-						+ (purchases.isUpgradeOn(item.getRef()) ? "ON"
-								: "OFF"));
-				lines.add("SWITCH ON/OFF IN CUSTOMIZE");
 			}
-			break;
-		}
-		default:
-			break;
+			case SHAPE: {
+				ShapeSkin shape = ShapeSkin.valueOf(item.getRef());
+				lines.add("FOR THE " + ShopCatalog.shipName(shape.getShipType())
+						.toUpperCase() + " SHIP");
+				lines.add("LOOK ONLY - SAME STATS");
+				break;
+			}
+			case SKIN: {
+				Skin skin = ShopCatalog.limitedSkin(item);
+				if (skin == null)
+					break;
+				long days = skin.daysLeft(LocalDate.now());
+				lines.add(days == 0 ? "LIMITED EDITION - NO LONGER SOLD"
+						: "LIMITED EDITION - " + days
+						+ (days == 1 ? " DAY LEFT" : " DAYS LEFT"));
+				break;
+			}
+			case UPGRADE: {
+				if (!purchases.isOwned(item)) {
+					lines.add("ONE EQUIPPED AT A TIME");
+				} else {
+					lines.add("OWNED - "
+							+ (purchases.isUpgradeOn(item.getRef()) ? "ON"
+							: "OFF"));
+					lines.add("SWITCH ON/OFF IN CUSTOMIZE");
+				}
+				break;
+			}
+			case EFFECT:
+				lines.add(purchases.isOwned(item) ? "SWITCH ON/OFF IN CUSTOMIZE"
+						: "LOOK ONLY - NO STAT CHANGE");
+				break;
+			default:
+				break;
 		}
 		return lines;
 	}
@@ -835,9 +1116,9 @@ public class ShopScreen extends Screen {
 	}
 
 	private void drawCentered(final String text, final int centerX,
-			final int baseline, final Color color) {
+							  final int baseline, final Color color) {
 		this.drawManager.drawSmallString(text, centerX
-				- this.drawManager.getSmallStringWidth(text) / 2, baseline,
+						- this.drawManager.getSmallStringWidth(text) / 2, baseline,
 				color);
 	}
 
@@ -857,7 +1138,7 @@ public class ShopScreen extends Screen {
 			String candidate = line.length() == 0 ? word : line + " " + word;
 			if (line.length() > 0
 					&& this.drawManager.getSmallStringWidth(candidate)
-							> maxWidth) {
+					> maxWidth) {
 				lines.add(line.toString());
 				line = new StringBuilder(word);
 			} else {

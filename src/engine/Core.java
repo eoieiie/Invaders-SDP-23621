@@ -51,7 +51,7 @@ public final class Core {
 			new GameSettings(5, 3, 50, 2500);
 	/** Difficulty settings for level 3. */
 	private static final GameSettings SETTINGS_LEVEL_3 =
-			new GameSettings(5, 4, 40, 2000);
+			new GameSettings(5, 4, 40, 2000, true);
 	/** Difficulty settings for level 4. */
 	private static final GameSettings SETTINGS_LEVEL_4 =
 			new GameSettings(6, 4, 30, 1500);
@@ -60,7 +60,7 @@ public final class Core {
 			new GameSettings(5, 4, 5, 1000);
 	/** Difficulty settings for level 6. */
 	private static final GameSettings SETTINGS_LEVEL_6 =
-			new GameSettings(6, 3, 10, 1000);
+			new GameSettings(6, 3, 10, 1000, Math.round(6 * 3 * 0.20f));
 	/** Difficulty settings for level 7. */
 	private static final GameSettings SETTINGS_LEVEL_7 =
 			new GameSettings(6, 4, 5, 500);
@@ -69,7 +69,7 @@ public final class Core {
 			new GameSettings(7, 4, 3, 500);
 	/** Difficulty settings for level 9. */
 	private static final GameSettings SETTINGS_LEVEL_9 =
-			new GameSettings(7, 5, 1, 300);
+			new GameSettings(7, 5, 1, 300, true, Math.round(7 * 5 * 0.20f));
 	/** Difficulty settings for level 10. */
 	private static final GameSettings SETTINGS_LEVEL_10 =
 			new GameSettings(5, 4, 8, 500);
@@ -135,10 +135,13 @@ public final class Core {
 		gameSettings.add(SETTINGS_LEVEL_10);
 		
 		GameState gameState;
+		int startLevel = Integer.getInteger("game.startLevel", 1);
+		if (startLevel < 1 || startLevel > NUM_LEVELS)
+			startLevel = 1;
 
-		int returnCode = 1;
+		int returnCode = startLevel == 1 ? 1 : 2;
 		do {
-			gameState = new GameState(1, 0, MAX_LIVES, 0, 0, 0);
+			gameState = new GameState(startLevel, 0, MAX_LIVES, 0, 0, 0);
 
 			switch (returnCode) {
 			case 1:
@@ -151,10 +154,12 @@ public final class Core {
 				break;
 			case 2:
 				// Practice first; ESC returns to the menu without starting a run.
-				currentScreen = new TutorialScreen(width, height, FPS);
-				returnCode = frame.setScreen(currentScreen);
-				if (returnCode != 2) {
-					break;
+				if (startLevel == 1) {
+					currentScreen = new TutorialScreen(width, height, FPS);
+					returnCode = frame.setScreen(currentScreen);
+					if (returnCode != 2) {
+						break;
+					}
 				}
 				// Game & score.
 				do {
@@ -466,4 +471,31 @@ public final class Core {
 			final int variance) {
 		return new Cooldown(milliseconds, variance);
 	}
+
+    /**
+     * The currently selected ship type for gameplay.
+     * Defaults to STANDARD.
+     */
+    private static entity.Ship.ShipType currentShipType = entity.Ship.ShipType.STANDARD;
+
+    /**
+     * Sets the currently selected ship type.
+     * Call this method from ShipSelectScreen when the player confirms their choice.
+     *
+     * @param shipType
+     *            The type of ship selected by the player.
+     */
+    public static void setCurrentShipType(final entity.Ship.ShipType shipType) {
+        currentShipType = shipType;
+    }
+
+    /**
+     * Gets the currently selected ship type.
+     * Used by GameScreen to spawn the correct ship.
+     *
+     * @return The current ship type.
+     */
+    public static entity.Ship.ShipType getCurrentShipType() {
+        return currentShipType;
+    }
 }

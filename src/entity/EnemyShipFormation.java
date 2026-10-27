@@ -1,6 +1,7 @@
 package entity;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -48,6 +49,10 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 	private static final int DESCENT_DISTANCE = 20;
 	/** Minimum speed allowed. */
 	private static final int MINIMUM_SPEED = 10;
+	/** Vertical range of the diagonal zig-zag, in pixels (Team A1). */
+	private static final int DIAGONAL_RANGE = 40;
+	/** How far the diagonal formation sinks each time it touches a side. */
+	private static final int DIAGONAL_DESCENT = 12;
 
 	/** DrawManager instance. */
 	private DrawManager drawManager;
@@ -94,6 +99,16 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 	private List<EnemyShip> shooters;
 	/** Number of not destroyed ships. */
 	private int shipCount;
+	/** True if the whole formation moves diagonally (Team A1). */
+	private boolean diagonalMovement;
+	/** Horizontal step of the diagonal movement: positive is right. */
+	private int diagonalStepX;
+	/** Vertical step of the diagonal zig-zag: positive is down. */
+	private int diagonalStepY;
+	/** How far down the zig-zag currently is, from 0 to DIAGONAL_RANGE. */
+	private int diagonalOffset;
+	/** Pixels the formation still has to sink after touching a side. */
+	private int pendingDescent;
 
 	/** Directions the formation can move. */
 	private enum Direction {
@@ -117,6 +132,11 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 		this.enemyShips = new ArrayList<List<EnemyShip>>();
 		this.currentDirection = Direction.RIGHT;
 		this.movementInterval = 0;
+		this.diagonalMovement = gameSettings.isDiagonalMovement();
+		this.diagonalStepX = X_SPEED;
+		this.diagonalStepY = Y_SPEED;
+		this.diagonalOffset = 0;
+		this.pendingDescent = 0;
 		this.nShipsWide = gameSettings.getFormationWidth();
 		this.nShipsHigh = gameSettings.getFormationHeight();
 		this.shootingInterval = gameSettings.getShootingFrecuency();
@@ -136,6 +156,14 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 		for (int i = 0; i < this.nShipsWide; i++)
 			this.enemyShips.add(new ArrayList<EnemyShip>());
 
+		// Sample without replacement so every position is equally eligible.
+		List<Integer> positions = new ArrayList<Integer>();
+		for (int i = 0; i < this.nShipsWide * this.nShipsHigh; i++)
+			positions.add(i);
+		Collections.shuffle(positions);
+		Set<Integer> elitePositions = new HashSet<Integer>(
+				positions.subList(0, gameSettings.getTwoHitEnemyCount()));
+
 		for (List<EnemyShip> column : this.enemyShips) {
 			for (int i = 0; i < this.nShipsHigh; i++) {
 				if (i / (float) this.nShipsHigh < PROPORTION_C)
@@ -146,10 +174,13 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 				else
 					spriteType = SpriteType.EnemyShipA1;
 
+				int positionIndex = i * this.nShipsWide
+						+ this.enemyShips.indexOf(column);
+				int health = elitePositions.contains(positionIndex) ? 2 : 1;
 				column.add(new EnemyShip((SEPARATION_DISTANCE 
 						* this.enemyShips.indexOf(column))
 								+ positionX, (SEPARATION_DISTANCE * i)
-								+ positionY, spriteType));
+								+ positionY, spriteType, health));
 				this.shipCount++;
 			}
 		}
@@ -217,7 +248,9 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 			boolean isAtLeftSide = positionX <= SIDE_MARGIN;
 			boolean isAtHorizontalAltitude = positionY % DESCENT_DISTANCE == 0;
 
-			if (currentDirection == Direction.DOWN) {
+			if (this.diagonalMovement) {
+				advanceDiagonal(isAtLeftSide, isAtRightSide, isAtBottom);
+			} else if (currentDirection == Direction.DOWN) {
 				if (isAtHorizontalAltitude)
 					if (previousDirection == Direction.RIGHT) {
 						currentDirection = Direction.LEFT;
@@ -248,7 +281,11 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 					}
 			}
 
-			if (currentDirection == Direction.RIGHT)
+			if (this.diagonalMovement) {
+				movementX = this.diagonalStepX;
+				movementY = this.nextDiagonalStepY(isAtBottom);
+			} 
+			else if (currentDirection == Direction.RIGHT)
 				movementX = X_SPEED;
 			else if (currentDirection == Direction.LEFT)
 				movementX = -X_SPEED;
@@ -280,7 +317,59 @@ public class EnemyShipFormation implements Iterable<EnemyShip> {
 				}
 		}
 	}
+	/**
+	 * Diagonal movement (Team A1): the whole formation keeps its spacing and
+	 * moves sideways and up and down at the same time. Touching a side
+	 * reverses the horizontal direction and makes the formation sink a bit,
+	 * like the classic movement does.
+	 * 
+	 * @param isAtLeftSide
+	 *            True if the formation touches the left margin.
+	 * @param isAtRightSide
+	 *            True if the formation touches the right margin.
+	 * @param isAtBottom
+	 *            True if the formation reached the lower boundary.
+	 */
+	private void advanceDiagonal(final boolean isAtLeftSide,
+			final boolean isAtRightSide, final boolean isAtBottom) {
+		if (isAtLeftSide && this.diagonalStepX < 0) {
+			this.diagonalStepX = X_SPEED;
+			if (!isAtBottom)
+				this.pendingDescent += DIAGONAL_DESCENT;
+		} else if (isAtRightSide && this.diagonalStepX > 0) {
+			this.diagonalStepX = -X_SPEED;
+			if (!isAtBottom)
+				this.pendingDescent += DIAGONAL_DESCENT;
+		}
+	}
 
+	/**
+	 * Vertical step of the diagonal movement: a zig-zag between the top of
+	 * the range and DIAGONAL_RANGE pixels below it, plus the sinking after
+	 * touching a side. The formation never moves down once it is at the
+	 * lower boundary.
+	 * 
+	 * @param isAtBottom
+	 *            True if the formation reached the lower boundary.
+	 * @return Pixels to move down, negative to move up.
+	 */
+	private int nextDiagonalStepY(final boolean isAtBottom) {
+		if (isAtBottom) {
+			this.pendingDescent = 0;
+			return 0;
+		}
+		int nextOffset = this.diagonalOffset + this.diagonalStepY;
+		if (nextOffset > DIAGONAL_RANGE || nextOffset < 0)
+			this.diagonalStepY = -this.diagonalStepY;
+		this.diagonalOffset += this.diagonalStepY;
+		int stepY = this.diagonalStepY;
+		if (this.pendingDescent > 0) {
+			stepY += Y_SPEED;
+			this.pendingDescent -= Y_SPEED;
+		}
+		return stepY;
+	}
+	
 	/**
 	 * Removes destroyed ships from the formation. Used by the game over
 	 * sequence, while the formation is no longer updated.
