@@ -138,7 +138,7 @@ public final class TutorialScreen extends Screen {
 
     private void draw() {
         drawManager.initDrawing(this);
-        drawManager.drawScreenTitle(this, "TUTORIAL");
+        drawManager.drawScreenTitle(this, "Tutorial");
         String instruction;
         switch (step) {
         case MOVE:
@@ -175,7 +175,7 @@ public final class TutorialScreen extends Screen {
         for (Bullet bullet : bullets) {
             drawManager.drawEntity(bullet, bullet.getPositionX(), bullet.getPositionY());
         }
-        drawManager.drawKeyHints(this, "S: skip to Stage 1 | ESC: menu");
+        drawManager.drawKeyHints(this, "s skip to stage 1, esc menu");
         drawManager.completeDrawing(this);
     }
 }
