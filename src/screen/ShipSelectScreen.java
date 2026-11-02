@@ -422,8 +422,8 @@ public class ShipSelectScreen extends Screen {
 
 		boolean toggleRow = this.row == Row.UPGRADE || this.row == Row.EFFECT;
 		drawManager.drawKeyHints(this, toggleRow
-				? "up/down row | left/right browse | space on/off | esc back"
-				: "up/down row | left/right change | esc back");
+				? "up/down row, left/right browse, space on/off, esc back"
+				: "up/down row, left/right change, esc back");
 
 		drawManager.completeDrawing(this);
 	}
