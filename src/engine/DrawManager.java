@@ -1356,8 +1356,9 @@ public final class DrawManager {
 
 
 	/**
-	 * Draws the scrolling stars behind the main menu. Call it right after
-	 * initDrawing so everything else is drawn on top.
+	 * Draws the stars behind the main menu, each with a short streak
+	 * towards the centre. Call it right after initDrawing so everything
+	 * else is drawn on top.
 	 *
 	 * @param screen
 	 *            Screen to draw on.
@@ -1368,6 +1369,8 @@ public final class DrawManager {
 		for (int i = 0; i < starfield.getCount(); i++) {
 			int size = starfield.getSize(i);
 			backBufferGraphics.setColor(starfield.getColor(i));
+			backBufferGraphics.drawLine(starfield.getTailX(i),
+					starfield.getTailY(i), starfield.getX(i), starfield.getY(i));
 			backBufferGraphics.fillRect(starfield.getX(i), starfield.getY(i),
 					size, size);
 		}
